@@ -1,5 +1,14 @@
 markdown: GFM
 
 title: SPARQL examples
-description: A collection of SPARQL examples for YOUR_PROJECT
+description: SPARQL queries that define evidence tiers for the components of PlantMetWiki pathways
 # logo: /assets/images/logo.svg
+
+exclude:
+  - run_examples.py
+  - requirements.txt
+  - examples-local
+  - Dockerfile
+  - Gemfile
+  - Gemfile.lock
+  - .venv
