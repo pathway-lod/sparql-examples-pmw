@@ -1,0 +1,38 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:po1 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "PO-1. An association of a gene and a metabolite feature where the gene (by its Solyc locus, listed in PlantMetWiki) and the metabolite (by an InChIKey first-block match of an annotation of the feature) are in the same PlantMetWiki pathway. Both sides are computed here; the stored anchor terms are not used. NOTE: the associations of the MEANtools pilot (MTBLS1039) have m/z values only and no annotation in the RDF, so the metabolite side returns no rows on the current graphs; PO-1g shows the gene side alone. TESTED 2026-11-10: 0 rows, as expected (see above)."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "case 6: paired omics, transcript-metabolite associations" , "PO-1" , "evidence tier" , "gene-metabolite association" , "paired omics" , "MEANtools" , "metabolite annotation" , "InChIKey" , "gene" , "Solyc locus" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX sio: <http://semanticscience.org/resource/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?association ?pathway ?gene ?feature WHERE {
+  ?association a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?feature , ?geneIri .
+  ?feature a lodp:MetaboliteFeature .
+  FILTER(STRSTARTS(STR(?geneIri), "https://plants.ensembl.org/"))
+  BIND(REPLACE(STR(?geneIri), "^.*[?&]g=", "") AS ?gene)
+  ?annotation a lodp:MetaboliteAnnotation ; lodp:feature ?feature ; skos:closeMatch ?key .
+  FILTER(STRSTARTS(STR(?key), "https://identifiers.org/inchikey/"))
+  BIND(SUBSTR(STRAFTER(STR(?key), "inchikey/"), 1, 14) AS ?block1)
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?pathway ?gene ?block1 WHERE {
+      ?geneNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bg . ?bg v:value ?gv .
+      FILTER(REGEX(STR(?gv), "^Solyc[0-9]+g[0-9]+", "i"))
+      BIND(CONCAT("Solyc", SUBSTR(STR(?gv), 6, 9)) AS ?gene)
+      ?metNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bm . ?bm v:key "InchiKey" ; v:value ?ik .
+      BIND(SUBSTR(STRAFTER(?ik, "InChIKey="), 1, 14) AS ?block1)
+      BIND(REPLACE(STR(?gp), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathway)
+    }
+  }
+}
+LIMIT 100""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

@@ -1,0 +1,40 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:met4 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "MET-4 (proxy). Two detected metabolites of the same dataset are matched to PlantMetWiki metabolites (MET-1) and the two InChIs share the same formula layer but not the same connectivity (they are related structures: isomers). A true fingerprint similarity (for example Tanimoto) cannot be computed in SPARQL; when precomputed values are in the graph (as in MET-3) they replace this proxy. TESTED 2026-11-10: did NOT finish within 280 s (two unbound federated calls to PlantMetWiki); it needs a LIMIT, a cached lookup or the PlantMetWiki metabolites loaded locally."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-4" , "evidence tier" , "metabolite annotation" , "metabolite feature" , "InChI" , "InChIKey" , "structure similarity" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+
+SELECT ?featureA ?featureB ?formulaLayer ?metaboliteA ?metaboliteB WHERE {
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
+  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB .
+  ?featureA lodp:dataset ?dataset . ?featureB lodp:dataset ?dataset .
+  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/") && STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
+  BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+  BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
+  FILTER(?blockA < ?blockB)
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?blockA ?metaboliteA ?formulaLayer WHERE {
+      ?metaboliteA v:gpmlProperty ?b1 , ?b2 . ?b1 v:key "InchiKey" ; v:value ?ika . ?b2 v:key "Inchi" ; v:value ?inchiA .
+      BIND(SUBSTR(STRAFTER(?ika, "InChIKey="), 1, 14) AS ?blockA)
+      BIND(STRBEFORE(STRAFTER(?inchiA, "InChI=1S/"), "/") AS ?formulaLayer)
+    }
+  }
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?blockB ?metaboliteB ?formulaLayer WHERE {
+      ?metaboliteB v:gpmlProperty ?b3 , ?b4 . ?b3 v:key "InchiKey" ; v:value ?ikb . ?b4 v:key "Inchi" ; v:value ?inchiB .
+      BIND(SUBSTR(STRAFTER(?ikb, "InChIKey="), 1, 14) AS ?blockB)
+      BIND(STRBEFORE(STRAFTER(?inchiB, "InChI=1S/"), "/") AS ?formulaLayer)
+    }
+  }
+}
+LIMIT 100""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

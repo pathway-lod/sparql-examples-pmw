@@ -29,5 +29,5 @@ SELECT ?claim ?pc ?anchorTier ?reactions ?ec ?rhea ?uniprot WHERE {
   }
 }
 ORDER BY ?pc""" ;
-    schema:target <urn:lodp:local-graph> ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
     spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

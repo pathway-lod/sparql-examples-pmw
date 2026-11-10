@@ -1,0 +1,27 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:met2 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "MET-2. Two detected metabolites of the same dataset, each with an annotation that matches PlantMetWiki (MET-1), share a chemical class (an NPClassifier term). The class is read from the annotation as lodp:chemicalClass. NOT RUNNABLE ON THE CURRENT GRAPHS: the annotation graph has no class values yet (NPClassifier is a step of the consensus workflow, but its output is not in the RDF)."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-2" , "evidence tier" , "metabolite annotation" , "metabolite feature" , "chemical class" , "NPClassifier" , "InChIKey" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" , "no data yet" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+
+SELECT ?featureA ?featureB ?class WHERE {
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA ; lodp:chemicalClass ?class .
+  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB ; lodp:chemicalClass ?class .
+  ?featureA lodp:dataset ?dataset . ?featureB lodp:dataset ?dataset .
+  FILTER(STR(?featureA) < STR(?featureB))
+  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/") && STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
+  BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+  BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
+  { SELECT DISTINCT ?blockA WHERE { SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> { ?n v:gpmlProperty ?b . ?b v:key "InchiKey" ; v:value ?ik . BIND(SUBSTR(STRAFTER(?ik, "InChIKey="), 1, 14) AS ?blockA) } } }
+}
+LIMIT 100""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

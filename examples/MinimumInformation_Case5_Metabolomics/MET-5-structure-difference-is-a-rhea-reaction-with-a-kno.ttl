@@ -1,0 +1,52 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:met5 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "MET-5. Two detected metabolites are matched to PlantMetWiki metabolites (MET-1) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. TESTED 2026-11-10: did NOT finish within 280 s (three unbound federated calls and a join over Rhea); run it on a subset of features or with the lookups cached."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-5" , "evidence tier" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "ChEBI" , "Rhea" , "enzyme" , "UniProt" , "PlantMetWiki metabolite" , "PlantMetWiki reaction" , "pathway expansion" , "federated query" , "local evidence graph" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX rh: <http://rdf.rhea-db.org/>
+
+SELECT DISTINCT ?featureA ?featureB ?rhea ?pmwReaction ?uniprot WHERE {
+  { SELECT DISTINCT ?pmwReaction ?rhea ?uniprot WHERE {
+      SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        ?pmwReaction a gpml:Interaction ; v:gpmlProperty ?br , ?bu . ?br v:key "AlternativeId_Rhea" ; v:value ?rheaId . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
+        BIND(IRI(CONCAT("http://rdf.rhea-db.org/", STR(?rheaId))) AS ?rhea)
+        BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
+      }
+  } LIMIT 300 }
+  SERVICE <https://sparql.rhea-db.org/sparql> {
+    ?rhea rh:side ?sideA , ?sideB .
+    ?sideA rh:contains/rh:compound/rh:chebi ?chebiA .
+    ?sideB rh:contains/rh:compound/rh:chebi ?chebiB .
+    FILTER(?sideA != ?sideB && STR(?chebiA) < STR(?chebiB))
+  }
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?block1A ?chebiA WHERE {
+      ?mA v:gpmlProperty ?ba1 , ?ba2 . ?ba1 v:key "InchiKey" ; v:value ?ika . ?ba2 v:key "AlternativeId_Chebi" ; v:value ?cA .
+      BIND(SUBSTR(STRAFTER(?ika, "InChIKey="), 1, 14) AS ?block1A)
+      BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?cA))) AS ?chebiA)
+    }
+  }
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?block1B ?chebiB WHERE {
+      ?mB v:gpmlProperty ?bb1 , ?bb2 . ?bb1 v:key "InchiKey" ; v:value ?ikb . ?bb2 v:key "AlternativeId_Chebi" ; v:value ?cB .
+      BIND(SUBSTR(STRAFTER(?ikb, "InChIKey="), 1, 14) AS ?block1B)
+      BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?cB))) AS ?chebiB)
+    }
+  }
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
+  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB .
+  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/") && STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
+  FILTER(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) = ?block1A && SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) = ?block1B)
+}
+LIMIT 100""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> , <https://sparql.rhea-db.org/sparql> .

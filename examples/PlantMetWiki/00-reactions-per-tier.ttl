@@ -6,6 +6,7 @@
 
 ex:pmw-00 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
     rdfs:comment "Number of PlantMetWiki reactions (GPML interactions with a reaction equation) and how many reach each evidence tier: an EC number, a Rhea identifier, a UniProt enzyme on the reaction. Overview of tiers 1 to 3."@en ;
+    schema:keywords "Evidence tiers of pathway components" , "case 2: inferred enzyme function from PMN/PlantCyc+ (pathway components)" , "evidence tier" , "pathway component tier" , "PlantMetWiki reaction" , "EC number" , "Rhea" , "UniProt" , "overview" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>

@@ -6,6 +6,7 @@
 
 ex:pmw-01 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
     rdfs:comment "Tier 1 (ec): reactions of a PlantMetWiki pathway that have an EC number. Returns the PlantCyc pathway number, the reaction and the EC number."@en ;
+    schema:keywords "Evidence tiers of pathway components" , "case 2: inferred enzyme function from PMN/PlantCyc+ (pathway components)" , "evidence tier" , "pathway component tier" , "PlantMetWiki reaction" , "EC number" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>

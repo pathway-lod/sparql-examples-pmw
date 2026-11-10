@@ -6,6 +6,7 @@
 
 ex:pmw-04 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
     rdfs:comment "Tier 4 (enzyme_node): number of enzyme nodes with a UniProt identifier in each PlantMetWiki pathway, and how many of those UniProt entries are reviewed (Swiss-Prot) in UniProt (federated query). All enzyme nodes of PlantMetWiki carry the xref source Uniprot-TrEMBL, so the reviewed flag has to come from UniProt."@en ;
+    schema:keywords "Evidence tiers of pathway components" , "case 2: inferred enzyme function from PMN/PlantCyc+ (pathway components)" , "evidence tier" , "pathway component tier" , "PlantMetWiki pathway" , "enzyme" , "UniProt" , "federated query" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>

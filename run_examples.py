@@ -5,7 +5,7 @@
   python run_examples.py examples-local --data graph.ttl [graph2.ttl]   # queries on a LOCAL graph that may use SERVICE to endpoints
 
 Requirements: requests, rdflib (reads the Turtle files; a syntax error shows up here) and pyoxigraph (the local store; it runs the
-SERVICE clauses). A local example has the placeholder target <urn:lodp:local-graph>. This script is a stand-in for the Java tester
+SERVICE clauses). A local example has the placeholder target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph>. This script is a stand-in for the Java tester
 of the GitHub workflow (sparql-examples-utils, Java 17 or newer), which only knows endpoint queries.
 """
 import sys
@@ -17,7 +17,7 @@ import requests
 from rdflib import Graph, Namespace
 
 SH, SCHEMA = Namespace("http://www.w3.org/ns/shacl#"), Namespace("https://schema.org/")
-LOCAL = "urn:lodp:local-graph"
+LOCAL = "https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph"
 
 args = sys.argv[1:]
 data = args[args.index("--data") + 1:] if "--data" in args else []

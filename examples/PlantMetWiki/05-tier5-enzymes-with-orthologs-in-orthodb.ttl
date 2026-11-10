@@ -6,6 +6,7 @@
 
 ex:pmw-05 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
     rdfs:comment "Tier 5 (ortholog): enzyme nodes of PlantMetWiki with a UniProt identifier that are members of an OrthoDB orthologous group, with the group and the level it was built at (federated query). Takes 300 enzyme nodes as an example."@en ;
+    schema:keywords "Evidence tiers of pathway components" , "case 2: inferred enzyme function from PMN/PlantCyc+ (pathway components)" , "evidence tier" , "pathway component tier" , "enzyme" , "UniProt" , "orthologs" , "OrthoDB" , "federated query" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>

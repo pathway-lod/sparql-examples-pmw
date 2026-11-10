@@ -6,6 +6,7 @@
 
 ex:pmw-02 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
     rdfs:comment "Tier 2 (rhea): reactions of a PlantMetWiki pathway whose Rhea identifier is an approved reaction in Rhea (federated query). Returns the Rhea equation as a check."@en ;
+    schema:keywords "Evidence tiers of pathway components" , "case 2: inferred enzyme function from PMN/PlantCyc+ (pathway components)" , "evidence tier" , "pathway component tier" , "PlantMetWiki reaction" , "Rhea" , "federated query" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>

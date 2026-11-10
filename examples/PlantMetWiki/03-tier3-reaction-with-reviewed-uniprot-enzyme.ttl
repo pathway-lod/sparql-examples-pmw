@@ -6,6 +6,7 @@
 
 ex:pmw-03 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
     rdfs:comment "Tier 3 (uniprot): reactions of a PlantMetWiki pathway that name a UniProt enzyme, and whether that entry is reviewed (Swiss-Prot) in UniProt (federated query)."@en ;
+    schema:keywords "Evidence tiers of pathway components" , "case 2: inferred enzyme function from PMN/PlantCyc+ (pathway components)" , "evidence tier" , "pathway component tier" , "PlantMetWiki reaction" , "UniProt" , "enzyme" , "federated query" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>

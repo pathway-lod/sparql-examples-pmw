@@ -1,0 +1,20 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:met3 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "MET-3. Two detected metabolites are linked by a similarity metric (for example the cosine score of the MS/MS spectra, or an edge of a molecular network) above a threshold. The link is read as lodp:similarTo with lodp:similarityScore. NOT RUNNABLE ON THE CURRENT GRAPHS: no feature-to-feature similarity is in the RDF yet."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-3" , "evidence tier" , "metabolite feature" , "similarity metric" , "MS/MS spectral similarity" , "molecular network" , "local evidence graph" , "no data yet" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+
+SELECT ?featureA ?featureB ?metric ?score WHERE {
+  ?link a lodp:FeatureSimilarity ; lodp:featureA ?featureA ; lodp:featureB ?featureB ;
+        lodp:similarityMetric ?metric ; lodp:similarityScore ?score .
+  FILTER(?score >= 0.7)
+}
+ORDER BY DESC(?score)
+LIMIT 100""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> .
