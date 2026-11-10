@@ -22,21 +22,15 @@ Results on the PlantMetWiki endpoint (release 17, 2026-11-10): of 7,772 reaction
 
 How PlantMetWiki stores this: the reactions are `gpml:Interaction` nodes with `v:gpmlProperty` key/value pairs (`EC_Number`, `AlternativeId_Rhea`, `AlternativeId_Uniprot`, `ReactionEquation`); the PlantCyc pathway number is in the IRI (`.../Pathway/PC800_r17.../Interaction/...`).
 
-## Minimum Information: evidence tiers (by case)
+## Minimum information tiers
 
-Besides the tiers of the pathway components, the folders `examples/MinimumInformation_Case*` hold draft **minimum-information tiers for the results of the pilots**, grouped by the cases of the project (see [`minimum_information/`](https://github.com/pathway-lod/lod-pathways-community/tree/main/minimum_information) in lod-pathways-community):
+`examples/MinimumInformationTiers/` holds draft **minimum-information tiers for the results of the pilots**, one query per tier with a descriptive name (see [`minimum_information/`](https://github.com/pathway-lod/lod-pathways-community/tree/main/minimum_information) in lod-pathways-community). The [landing page](https://pathway-lod.github.io/sparql-examples-pmw/) lists them by the seven cases of the project; a query that uses data of several cases is listed under each of them, and carries a keyword per case.
 
-| Case | Folder | Tiers |
-|---|---|---|
-| 3. plantiSMASH-predicted BGCs | `MinimumInformation_Case3_BGC` | BGC-1 to BGC-3 |
-| 5. Metabolomics: metabolite annotations | `MinimumInformation_Case5_Metabolomics` | MET-1 to MET-5 |
-| 6. Paired omics: transcript-metabolite associations | `MinimumInformation_Case6_PairedOmics` | PO-1, PO-1g, PO-2 to PO-4 |
-
-The connectivity to PlantMetWiki (the metabolite, gene or pathway that a result matches) is **computed by the query** (first InChIKey block, Solyc locus, UniProt, Rhea), not read from stored anchor terms. These queries run on the evidence graphs of the pilots (`shape_constraints/rdf/` of lod-pathways-community) loaded into a local store, with PlantMetWiki, Rhea and UniProt called by `SERVICE`. Their `schema:target` is therefore a placeholder (`https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph`) until the graphs are served from an endpoint. Every query has keywords for what it uses (for example Rhea, co-expression, biosynthetic gene cluster, gene-metabolite association), and the keyword *no data yet* marks queries written against the proposed data model that return no rows on the current graphs.
+The connectivity to PlantMetWiki (the metabolite, gene or pathway that a result matches) is **computed by the query** (first InChIKey block, Solyc locus, UniProt, Rhea), not read from stored anchor terms. These queries run on the evidence graphs of the pilots (`shape_constraints/rdf/` of lod-pathways-community) loaded into a local store, with PlantMetWiki, Rhea and UniProt called by `SERVICE`. Their `schema:target` is therefore a placeholder (`https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph`) until the graphs are served from an endpoint. Every query has keywords for what it uses (for example Rhea, co-expression, biosynthetic gene cluster, gene-metabolite association); the keyword *no data yet* marks queries written against the proposed data model that return no rows on the current graphs, and the comment of each query says how it was tested.
 
 ```bash
 R=../lod-pathways-community
-.venv/bin/python run_examples.py examples/MinimumInformation_Case5_Metabolomics --data $R/shape_constraints/rdf/annotation.ttl
+.venv/bin/python run_examples.py examples/MinimumInformationTiers --data $R/shape_constraints/rdf/annotation.ttl
 ```
 
 ## Run them

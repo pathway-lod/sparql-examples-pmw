@@ -4,9 +4,9 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
-ex:met1 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "MET-1. A detected metabolite (feature) is annotated by at least one tool with an InChIKey whose first block (connectivity) equals that of a PlantMetWiki metabolite. The match is computed here, by comparing the first InChIKey block of each annotation with the PlantMetWiki metabolites; no stored anchor or match term is used. Returns, per feature, the number of tools whose annotation matches. TESTED 2026-11-10: on the 2,722 annotations of the Brassicaceae pilot it returned 2,015 features with a match, in about 63 s."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-1" , "evidence tier" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "PlantMetWiki metabolite" , "annotation tool" , "federated query" , "local evidence graph" ;
+ex:annotation-matches-plantmetwiki a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "A detected metabolite (feature) is annotated by at least one tool with an InChIKey whose first block (connectivity) equals that of a PlantMetWiki metabolite. The match is computed here, by comparing the first InChIKey block of each annotation with the PlantMetWiki metabolites; no stored anchor or match term is used. Returns, per feature, the number of tools whose annotation matches. TESTED 2026-11-10: on the 2,722 annotations of the Brassicaceae pilot it returned 2,015 features with a match, in about 63 s."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "PlantMetWiki metabolite" , "annotation tool" , "federated query" , "local evidence graph" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX sio: <http://semanticscience.org/resource/>

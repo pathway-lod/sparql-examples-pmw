@@ -4,9 +4,9 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
-ex:met5 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "MET-5. Two detected metabolites are matched to PlantMetWiki metabolites (MET-1) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. TESTED 2026-11-10: did NOT finish within 280 s (three unbound federated calls and a join over Rhea); run it on a subset of features or with the lookups cached."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-5" , "evidence tier" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "ChEBI" , "Rhea" , "enzyme" , "UniProt" , "PlantMetWiki metabolite" , "PlantMetWiki reaction" , "pathway expansion" , "federated query" , "local evidence graph" ;
+ex:rhea-step-between-metabolites a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Two detected metabolites are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. TESTED 2026-11-10: did NOT finish within 280 s (three unbound federated calls and a join over Rhea); run it on a subset of features or with the lookups cached."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "ChEBI" , "Rhea" , "enzyme" , "UniProt" , "PlantMetWiki metabolite" , "PlantMetWiki reaction" , "pathway expansion" , "federated query" , "local evidence graph" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>

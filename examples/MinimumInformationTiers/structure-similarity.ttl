@@ -4,9 +4,9 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
-ex:met4 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "MET-4 (proxy). Two detected metabolites of the same dataset are matched to PlantMetWiki metabolites (MET-1) and the two InChIs share the same formula layer but not the same connectivity (they are related structures: isomers). A true fingerprint similarity (for example Tanimoto) cannot be computed in SPARQL; when precomputed values are in the graph (as in MET-3) they replace this proxy. TESTED 2026-11-10: did NOT finish within 280 s (two unbound federated calls to PlantMetWiki); it needs a LIMIT, a cached lookup or the PlantMetWiki metabolites loaded locally."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "case 5: metabolomics, metabolite annotations" , "MET-4" , "evidence tier" , "metabolite annotation" , "metabolite feature" , "InChI" , "InChIKey" , "structure similarity" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" ;
+ex:structure-similarity a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Proxy for a structure similarity. Two detected metabolites of the same dataset are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the two InChIs share the same formula layer but not the same connectivity (they are related structures: isomers). A true fingerprint similarity (for example Tanimoto) cannot be computed in SPARQL; when precomputed values are in the graph (as in `similarity-link`) they replace this proxy. TESTED 2026-11-10: did NOT finish within 280 s (two unbound federated calls to PlantMetWiki); it needs a LIMIT, a cached lookup or the PlantMetWiki metabolites loaded locally."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "metabolite feature" , "InChI" , "InChIKey" , "structure similarity" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
