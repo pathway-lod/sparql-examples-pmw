@@ -4,6 +4,8 @@ SPARQL queries, stored in the [SIB SPARQL examples](https://github.com/sib-swiss
 
 ## Queries
 
+**Website:** <https://pathway-lod.github.io/sparql-examples-pmw/>, with a page per query: <https://pathway-lod.github.io/sparql-examples-pmw/examples/PlantMetWiki/>. The discussion of the tiers is in the [`prioritization/`](https://github.com/pathway-lod/lod-pathways-community/tree/main/prioritization) folder of lod-pathways-community.
+
 | File | Tier | Target | Federates with |
 |---|---|---|---|
 | `examples/PlantMetWiki/00-reactions-per-tier.ttl` | overview: reactions and how many reach tiers 1 to 3 | PlantMetWiki | |
