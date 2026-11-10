@@ -1,0 +1,23 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:pmw-00 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Number of PlantMetWiki reactions (GPML interactions with a reaction equation) and how many reach each evidence tier: an EC number, a Rhea identifier, a UniProt enzyme on the reaction. Overview of tiers 1 to 3."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+
+SELECT (COUNT(DISTINCT ?r) AS ?reactions)
+       (COUNT(DISTINCT ?ecR) AS ?tier1_ec)
+       (COUNT(DISTINCT ?rheaR) AS ?tier2_rhea)
+       (COUNT(DISTINCT ?upR) AS ?tier3_uniprot)
+WHERE {
+  ?r a gpml:Interaction ; v:gpmlProperty/v:key "ReactionEquation" .
+  OPTIONAL { ?r v:gpmlProperty ?b1 . ?b1 v:key "EC_Number" . BIND(?r AS ?ecR) }
+  OPTIONAL { ?r v:gpmlProperty ?b2 . ?b2 v:key "AlternativeId_Rhea" . BIND(?r AS ?rheaR) }
+  OPTIONAL { ?r v:gpmlProperty ?b3 . ?b3 v:key "AlternativeId_Uniprot" . BIND(?r AS ?upR) }
+}""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> .

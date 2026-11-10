@@ -1,10 +1,8 @@
 # SPARQL examples
 
-Edit this file to change YOUR\_PROJECT to the name of your actual project.
-In YOUR\_PROJECT. In that directory keep your project specific prefixes.ttl and 
-the ttl files containing your example queries.
+SPARQL queries for the PlantMetWiki knowledge graph that define the evidence tiers of pathway components (reactions): an EC number, a Rhea identifier, a UniProt enzyme, and so on. Some are federated with Rhea and UniProt.
 
- * [YOUR PROJECT](./examples/YOUR_PROJECT/)
+ * [PlantMetWiki: evidence tiers](./examples/PlantMetWiki/)
 
 # Examples
 

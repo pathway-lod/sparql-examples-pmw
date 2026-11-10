@@ -1,0 +1,24 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:pmw-02 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Tier 2 (rhea): reactions of a PlantMetWiki pathway whose Rhea identifier is an approved reaction in Rhea (federated query). Returns the Rhea equation as a check."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX rh: <http://rdf.rhea-db.org/>
+SELECT DISTINCT ?pathway ?reaction ?rhea ?equation WHERE {
+  { SELECT DISTINCT ?reaction ?id WHERE {
+      ?reaction a gpml:Interaction ; v:gpmlProperty ?b . ?b v:key "AlternativeId_Rhea" ; v:value ?id .
+    } LIMIT 100 }
+  BIND(IRI(CONCAT("http://rdf.rhea-db.org/", STR(?id))) AS ?rhea)
+  BIND(REPLACE(STR(?reaction), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathway)
+  SERVICE <https://sparql.rhea-db.org/sparql> {
+    ?rhea rh:status rh:Approved ; rh:equation ?equation .
+  }
+}""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> ;
+    spex:federatesWith <https://sparql.rhea-db.org/sparql> .

@@ -1,0 +1,33 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+# Runs on a LOCAL graph (the evidence graphs of lod-pathways-community, loaded with run_examples.py --data ...),
+# not on a public endpoint: the target is therefore a placeholder and this folder is not run by the GitHub workflow.
+ex:local-01 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Claims of the lod-pathways evidence graph that are anchored to a PlantMetWiki pathway, with the anchor tier of the claim and, from the live PlantMetWiki endpoint (federated), how many reactions of that pathway reach each evidence tier (the endpoint counts all pathways and the join is done locally) (EC number, Rhea identifier, UniProt enzyme)."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+SELECT ?claim ?pc ?anchorTier ?reactions ?ec ?rhea ?uniprot WHERE {
+  ?claim lodp:anchoredInPathway ?pw ; lodp:anchorTier ?anchorTier .
+  BIND(STRAFTER(STR(?pw), "pathways/") AS ?pc)
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT ?pc (COUNT(DISTINCT ?r) AS ?reactions) (COUNT(DISTINCT ?ecR) AS ?ec)
+                (COUNT(DISTINCT ?rheaR) AS ?rhea) (COUNT(DISTINCT ?upR) AS ?uniprot) WHERE {
+      ?r a gpml:Interaction ; dcterms:isPartOf ?gp ; v:gpmlProperty/v:key "ReactionEquation" .
+      BIND(REPLACE(STR(?gp), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pc)
+      OPTIONAL { ?r v:gpmlProperty ?b1 . ?b1 v:key "EC_Number" . BIND(?r AS ?ecR) }
+      OPTIONAL { ?r v:gpmlProperty ?b2 . ?b2 v:key "AlternativeId_Rhea" . BIND(?r AS ?rheaR) }
+      OPTIONAL { ?r v:gpmlProperty ?b3 . ?b3 v:key "AlternativeId_Uniprot" . BIND(?r AS ?upR) }
+    } GROUP BY ?pc
+  }
+}
+ORDER BY ?pc""" ;
+    schema:target <urn:lodp:local-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

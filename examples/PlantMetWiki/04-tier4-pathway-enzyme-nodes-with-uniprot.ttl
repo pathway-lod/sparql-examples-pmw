@@ -1,0 +1,26 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:pmw-04 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Tier 4 (enzyme_node): number of enzyme nodes with a UniProt identifier in each PlantMetWiki pathway, and how many of those UniProt entries are reviewed (Swiss-Prot) in UniProt (federated query). All enzyme nodes of PlantMetWiki carry the xref source Uniprot-TrEMBL, so the reviewed flag has to come from UniProt."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX up: <http://purl.uniprot.org/core/>
+SELECT ?pathway (COUNT(DISTINCT ?uniprot) AS ?uniprot_enzymes) (COUNT(DISTINCT ?reviewedUniprot) AS ?reviewed) WHERE {
+  { SELECT DISTINCT ?pathway ?acc WHERE {
+      ?e a gpml:DataNode ; dcterms:isPartOf ?gp ; v:gpmlProperty ?b . ?b v:key "AlternativeId_Uniprot" ; v:value ?acc .
+      BIND(REPLACE(STR(?gp), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathway)
+      FILTER(?pathway IN ("PC800", "PC1159", "PC992", "PC129"))
+    } }
+  BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
+  SERVICE <https://sparql.uniprot.org/sparql> { ?uniprot up:reviewed ?isReviewed . }
+  BIND(IF(?isReviewed, ?uniprot, ?undefined) AS ?reviewedUniprot)
+}
+GROUP BY ?pathway ORDER BY ?pathway""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> ;
+    spex:federatesWith <https://sparql.uniprot.org/sparql> .

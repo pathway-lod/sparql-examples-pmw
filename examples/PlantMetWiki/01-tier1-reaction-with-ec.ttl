@@ -1,0 +1,19 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:pmw-01 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Tier 1 (ec): reactions of a PlantMetWiki pathway that have an EC number. Returns the PlantCyc pathway number, the reaction and the EC number."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+
+SELECT DISTINCT ?pathway ?reaction ?ec WHERE {
+  ?reaction a gpml:Interaction ; v:gpmlProperty ?b . ?b v:key "EC_Number" ; v:value ?val .
+  BIND(REPLACE(STR(?val), "^EC-", "") AS ?ec)
+  BIND(REPLACE(STR(?reaction), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathway)
+}
+LIMIT 100""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> .

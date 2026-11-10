@@ -1,0 +1,26 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:pmw-05 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Tier 5 (ortholog): enzyme nodes of PlantMetWiki with a UniProt identifier that are members of an OrthoDB orthologous group, with the group and the level it was built at (federated query). Takes 300 enzyme nodes as an example."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX odb: <http://purl.orthodb.org/>
+SELECT ?pathway ?uniprot ?og ?level WHERE {
+  { SELECT DISTINCT ?pathway ?acc WHERE {
+      ?e a gpml:DataNode ; dcterms:isPartOf ?gp ; v:gpmlProperty ?b . ?b v:key "AlternativeId_Uniprot" ; v:value ?acc .
+      BIND(REPLACE(STR(?gp), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathway)
+    } LIMIT 300 }
+  BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
+  SERVICE <https://sparql.orthodb.org/sparql/> {
+    ?og a odb:OrthoGroup ; odb:ogBuiltAt ?level ; odb:hasMember/rdfs:seeAlso ?uniprot .
+  }
+}""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> ;
+    spex:federatesWith <https://sparql.orthodb.org/sparql/> .

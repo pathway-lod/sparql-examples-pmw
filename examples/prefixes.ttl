@@ -31,3 +31,53 @@ _:sparql_examples_prefixes sh:declare _:prefix_xsd .
 _:prefix_xsd
   sh:prefix "xsd" ;
   sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_v .
+_:prefix_v
+  sh:prefix "v" ;
+  sh:namespace "http://rdf-plantmetwiki.bioinformatics.nl/vocab/"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_gpml .
+_:prefix_gpml
+  sh:prefix "gpml" ;
+  sh:namespace "http://vocabularies.wikipathways.org/gpml#"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_wp .
+_:prefix_wp
+  sh:prefix "wp" ;
+  sh:namespace "http://vocabularies.wikipathways.org/wp#"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_dcterms .
+_:prefix_dcterms
+  sh:prefix "dcterms" ;
+  sh:namespace "http://purl.org/dc/terms/"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_rh .
+_:prefix_rh
+  sh:prefix "rh" ;
+  sh:namespace "http://rdf.rhea-db.org/"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_up .
+_:prefix_up
+  sh:prefix "up" ;
+  sh:namespace "http://purl.uniprot.org/core/"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_lodp .
+_:prefix_lodp
+  sh:prefix "lodp" ;
+  sh:namespace "https://example.org/lod-pathways/pilot/"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_sio .
+_:prefix_sio
+  sh:prefix "sio" ;
+  sh:namespace "http://semanticscience.org/resource/"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_prov .
+_:prefix_prov
+  sh:prefix "prov" ;
+  sh:namespace "http://www.w3.org/ns/prov#"^^xsd:anyURI .
+
+_:sparql_examples_prefixes sh:declare _:prefix_obo .
+_:prefix_obo
+  sh:prefix "obo" ;
+  sh:namespace "http://purl.obolibrary.org/obo/"^^xsd:anyURI .

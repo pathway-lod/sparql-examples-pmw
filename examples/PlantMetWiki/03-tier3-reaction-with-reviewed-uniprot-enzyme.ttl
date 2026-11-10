@@ -1,0 +1,25 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:pmw-03 a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "Tier 3 (uniprot): reactions of a PlantMetWiki pathway that name a UniProt enzyme, and whether that entry is reviewed (Swiss-Prot) in UniProt (federated query)."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX up: <http://purl.uniprot.org/core/>
+PREFIX uniprotkb: <http://purl.uniprot.org/uniprot/>
+SELECT DISTINCT ?pathway ?reaction ?uniprot ?reviewed WHERE {
+  { SELECT DISTINCT ?reaction ?acc WHERE {
+      ?reaction a gpml:Interaction ; v:gpmlProperty ?b . ?b v:key "AlternativeId_Uniprot" ; v:value ?acc .
+    } LIMIT 100 }
+  BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
+  BIND(REPLACE(STR(?reaction), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathway)
+  SERVICE <https://sparql.uniprot.org/sparql> {
+    ?uniprot a up:Protein ; up:reviewed ?reviewed .
+  }
+}""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> ;
+    spex:federatesWith <https://sparql.uniprot.org/sparql> .
