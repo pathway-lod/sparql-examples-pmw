@@ -1,0 +1,30 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:metabolite-similar-to-pathway-metabolite-idsm a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "metabolite-similar-to-pathway-metabolite-idsm: A detected metabolite is kept if the IDSM chemical structure search finds a ChEBI compound similar to it (Sachem similarity of at least 0.9) that is a metabolite of a PlantMetWiki pathway. Returns the similar compound, the score and the pathways. The detected metabolite is given by its SMILES in the two BIND lines (here 2,5-dihydroxybenzoate, a metabolite of the Brassicaceae annotation pilot, Wikidata Q27125148); in a run over the evidence graph the SMILES come from the annotations (for example from the Wikidata property P233). One metabolite per run, because the PlantMetWiki endpoint does not accept two SERVICE clauses with a VALUES block. TESTED 2026-11-11 on the public endpoints: 7 rows in under 1 s."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "PlantMetWiki pathway" , "PlantMetWiki metabolite" , "Wikidata" , "SMILES" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX sachem: <http://bioinfo.uochb.cas.cz/rdf/v1.0/sachem#>
+
+SELECT DISTINCT ?detectedMetabolite ?similarChebi ?score ?pathway WHERE {
+  BIND("2,5-dihydroxybenzoate" AS ?detectedMetabolite)
+  BIND("OC(=O)c1cc(O)ccc1O" AS ?smiles)
+  SERVICE <https://idsm.elixir-czech.cz/sparql/endpoint/chebi> {
+    [ sachem:compound ?similarChebi ; sachem:score ?score ]
+      sachem:similaritySearch [ sachem:query ?smiles ; sachem:cutoff 9e-1 ] .
+  }
+  BIND(STRAFTER(STR(?similarChebi), "CHEBI_") AS ?chebiId)
+  ?metabolite v:gpmlProperty ?b . ?b v:key "AlternativeId_Chebi" ; v:value ?chebiId .
+  ?metabolite dcterms:isPartOf ?gp .
+  BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+}
+ORDER BY DESC(?score) ?pathway
+LIMIT 100""" ;
+    schema:target <https://plantmetwiki.bioinformatics.nl/sparql> ;
+    spex:federatesWith <https://idsm.elixir-czech.cz/sparql/endpoint/chebi> .
