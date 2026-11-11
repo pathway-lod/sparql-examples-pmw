@@ -5,35 +5,36 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:gene-catalyses-the-transformation a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "gene-catalyses-the-transformation: A gene is associated with two metabolite features. Both are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`), and PlantMetWiki has a conversion from one to the other (substrate to product) catalysed by an enzyme that the gene is linked to (here by its UniProt accession, lodp:uniprot). Returns the gene, the two metabolites and the conversion. NOT RUNNABLE ON THE CURRENT GRAPHS: the associations have no second metabolite per gene with an annotation, and no gene-to-UniProt link in the RDF."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 6: paired omics, transcript-metabolite associations" , "case 5: metabolomics, metabolite annotations" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "gene-metabolite association" , "paired omics" , "enzyme" , "UniProt" , "PlantMetWiki reaction" , "substrate and product" , "metabolite annotation" , "InChIKey" , "federated query" , "local evidence graph" , "no data yet" ;
+    rdfs:comment "gene-catalyses-the-transformation: A gene is associated with two metabolite features. Both are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`), and PlantMetWiki has a conversion from one to the other (substrate to product) catalysed by an enzyme that the gene is linked to (here by its UniProt accession, lodp:uniprot). Returns the gene, the two metabolites and the conversion. NOT RUNNABLE ON THE CURRENT GRAPHS: the associations have no second metabolite per gene with an annotation, and no gene-to-UniProt link in the RDF. OUTPUT: a list of reactions (putative or supported: the PlantMetWiki conversion between two metabolites, catalysed by an enzyme that a co-expressed gene encodes) with their pathway; the gene, the enzyme (UniProt) and the two associated metabolite features (substrate and product) are metadata."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 6: paired omics, transcript-metabolite associations" , "case 5: metabolomics, metabolite annotations" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "gene-metabolite association" , "paired omics" , "enzyme" , "UniProt" , "PlantMetWiki reaction" , "substrate and product" , "metabolite annotation" , "InChIKey" , "federated query" , "local evidence graph" , "no data yet" , "output: reactions" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX sio: <http://semanticscience.org/resource/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX wp: <http://vocabularies.wikipathways.org/wp#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?gene ?featureA ?featureB ?conversion ?uniprot WHERE {
-  ?assocA a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?featureA , ?gene .
-  ?assocB a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?featureB , ?gene .
-  ?featureA a lodp:MetaboliteFeature . ?featureB a lodp:MetaboliteFeature .
-  FILTER(STR(?featureA) < STR(?featureB))
+SELECT DISTINCT ?component ?componentType ?pathway ?gene ?substrateFeature ?productFeature ?uniprot WHERE {
+  ?assocA a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?substrateFeature , ?gene .
+  ?assocB a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?productFeature , ?gene .
+  ?substrateFeature a lodp:MetaboliteFeature . ?productFeature a lodp:MetaboliteFeature .
+  FILTER(STR(?substrateFeature) != STR(?productFeature))
   ?gene lodp:uniprot ?uniprot .
-  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
-  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB .
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?substrateFeature ; skos:closeMatch ?keyA .
+  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?productFeature ; skos:closeMatch ?keyB .
   BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
   BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
   BIND(STRAFTER(STR(?uniprot), "uniprot/") AS ?acc)
+  BIND("reaction" AS ?componentType)
   SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-    SELECT DISTINCT ?blockA ?blockB ?acc ?conversion WHERE {
-      ?conversion a wp:Conversion ; wp:source ?mA ; wp:target ?mB .
-      ?cat a wp:Catalysis ; wp:target ?conversion ; wp:source ?enzyme .
-      ?mA v:gpmlProperty ?b1 . ?b1 v:key "InchiKey" ; v:value ?ika .
-      ?mB v:gpmlProperty ?b2 . ?b2 v:key "InchiKey" ; v:value ?ikb .
-      ?enzyme v:gpmlProperty ?b3 . ?b3 v:key "AlternativeId_Uniprot" ; v:value ?acc .
-      BIND(SUBSTR(STRAFTER(?ika, "InChIKey="), 1, 14) AS ?blockA)
-      BIND(SUBSTR(STRAFTER(?ikb, "InChIKey="), 1, 14) AS ?blockB)
+    SELECT DISTINCT ?blockA ?blockB ?acc ?component ?pathway WHERE {
+      ?component a wp:Conversion ; dcterms:isPartOf ?pw ; wp:source ?mA ; wp:target ?mB .
+      ?pw a wp:Pathway .
+      BIND(REPLACE(STR(?pw), "^.*/pathways/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+      ?cat a wp:Catalysis ; wp:target ?component ; wp:source ?enzyme .
+      BIND(SUBSTR(STRAFTER(STR(?mA), "inchikey/"), 1, 14) AS ?blockA)
+      BIND(SUBSTR(STRAFTER(STR(?mB), "inchikey/"), 1, 14) AS ?blockB)
+      BIND(STRAFTER(STR(?enzyme), "uniprot/") AS ?acc)
     }
   }
 }

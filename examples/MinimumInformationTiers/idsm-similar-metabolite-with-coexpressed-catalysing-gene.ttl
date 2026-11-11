@@ -5,18 +5,19 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:idsm-similar-metabolite-with-coexpressed-catalysing-gene a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "idsm-similar-metabolite-with-coexpressed-catalysing-gene: A detected metabolite is similar (IDSM, Sachem similarity of at least 0.7) to a metabolite of a PlantMetWiki pathway, and a gene that is co-expressed with it (associated with it in a functional cluster) encodes an enzyme (UniProt) that catalyses a conversion of that pathway in which the similar metabolite is a substrate or a product. The detected metabolite and the gene are given as one example in the three BIND lines (solasodine and the tomatidine 3-O-galactosyltransferase E5L3R8, both of alpha-tomatine biosynthesis); the co-expression association itself is not queried here, because the associations of the evidence graph have no annotation or UniProt link yet. TESTED 2026-11-11 on the public endpoints with this example: 4 rows in about 3 s."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 5: metabolomics, metabolite annotations" , "case 6: paired omics, transcript-metabolite associations" , "case 4: transcriptomics, gene co-expression values" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "gene-metabolite association" , "co-expression" , "gene" , "enzyme" , "UniProt" , "PlantMetWiki pathway" , "PlantMetWiki reaction" , "substrate and product" ;
+    rdfs:comment "idsm-similar-metabolite-with-coexpressed-catalysing-gene: A detected metabolite is similar (IDSM, Sachem similarity of at least 0.7) to a metabolite of a PlantMetWiki pathway, and a gene that is co-expressed with it (associated with it in a functional cluster) encodes an enzyme (UniProt) that catalyses a conversion of that pathway in which the similar metabolite is a substrate or a product. The detected metabolite and the gene are given as one example in the three BIND lines (solasodine and the tomatidine 3-O-galactosyltransferase E5L3R8, both of alpha-tomatine biosynthesis); the co-expression association itself is not queried here, because the associations of the evidence graph have no annotation or UniProt link yet. OUTPUT: a list of reactions (putative or supported: a conversion of a pathway that involves a metabolite similar to the detected metabolite and is catalysed by an enzyme that a co-expressed gene encodes), with the pathway, the detected metabolite, the similar ChEBI compound, its score and the enzyme as metadata."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 5: metabolomics, metabolite annotations" , "case 6: paired omics, transcript-metabolite associations" , "case 4: transcriptomics, gene co-expression values" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "gene-metabolite association" , "co-expression" , "gene" , "enzyme" , "UniProt" , "PlantMetWiki pathway" , "PlantMetWiki reaction" , "substrate and product" , "output: reactions" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX wp: <http://vocabularies.wikipathways.org/wp#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX sachem: <http://bioinfo.uochb.cas.cz/rdf/v1.0/sachem#>
 
-SELECT DISTINCT ?detectedMetabolite ?similarChebi ?score ?pathway ?conversion ?enzyme WHERE {
+SELECT DISTINCT ?component ?componentType ?pathway ?detectedMetabolite ?similarChebi ?score ?enzyme WHERE {
   BIND("solasodine" AS ?detectedMetabolite)
   BIND("C[C@H]1CC[C@@]2([C@H]([C@H]3[C@@H](O2)C[C@@H]4[C@@]3(CC[C@H]5[C@H]4CC=C6[C@@]5(CC[C@@H](C6)O)C)C)C)NC1" AS ?smiles)
   BIND(IRI("https://identifiers.org/uniprot/E5L3R8") AS ?enzyme)
+  BIND("reaction" AS ?componentType)
   SERVICE <https://idsm.elixir-czech.cz/sparql/endpoint/chebi> {
     [ sachem:compound ?similarChebi ; sachem:score ?score ]
       sachem:similaritySearch [ sachem:query ?smiles ; sachem:cutoff 7e-1 ] .
@@ -24,9 +25,9 @@ SELECT DISTINCT ?detectedMetabolite ?similarChebi ?score ?pathway ?conversion ?e
   BIND(STRAFTER(STR(?similarChebi), "CHEBI_") AS ?chebiId)
   ?metabolite v:gpmlProperty ?b1 , ?b2 . ?b1 v:key "AlternativeId_Chebi" ; v:value ?chebiId . ?b2 v:key "InchiKey" ; v:value ?ik .
   BIND(IRI(CONCAT("https://identifiers.org/inchikey/", STRAFTER(?ik, "InChIKey="))) AS ?metaboliteIri)
-  ?catalysis a wp:Catalysis ; wp:source ?enzyme ; wp:target ?conversion .
-  { ?conversion wp:source ?metaboliteIri } UNION { ?conversion wp:target ?metaboliteIri }
-  ?conversion dcterms:isPartOf ?pw .
+  ?catalysis a wp:Catalysis ; wp:source ?enzyme ; wp:target ?component .
+  { ?component wp:source ?metaboliteIri } UNION { ?component wp:target ?metaboliteIri }
+  ?component dcterms:isPartOf ?pw .
   ?pw a wp:Pathway .
   BIND(REPLACE(STR(?pw), "^.*/pathways/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
 }

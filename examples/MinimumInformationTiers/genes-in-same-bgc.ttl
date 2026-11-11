@@ -1,0 +1,21 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:genes-in-same-bgc a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "genes-in-same-bgc: Two or more genes lie in the same biosynthetic gene cluster (cluster has part gene). The lowest tier for genes of the same pathway. OUTPUT: a list of genes (the lowest tier: putatively in the same pathway because two or more genes lie in the same biosynthetic gene cluster), with the cluster and the number of its genes as metadata. No PlantMetWiki and no co-expression data are needed."@en ;
+    schema:keywords "Minimum Information: evidence tiers", "evidence tier", "case 3: plantiSMASH-predicted BGCs, predicted gene clusters", "biosynthetic gene cluster", "plantiSMASH", "gene", "local evidence graph", "output: genes" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX obo: <http://purl.obolibrary.org/obo/>
+
+SELECT ?component ?componentType ?cluster ?clusterSize WHERE {
+  ?cluster a obo:SO_0002357 ; obo:BFO_0000051 ?component .
+  { SELECT ?cluster (COUNT(DISTINCT ?gene) AS ?clusterSize) WHERE {
+      ?cluster a obo:SO_0002357 ; obo:BFO_0000051 ?gene .
+    } GROUP BY ?cluster HAVING (COUNT(DISTINCT ?gene) >= 2) }
+  BIND("gene" AS ?componentType)
+}
+ORDER BY DESC(?clusterSize) ?cluster""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> .

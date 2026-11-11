@@ -5,16 +5,17 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:metabolite-similar-to-pathway-metabolite-idsm a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "metabolite-similar-to-pathway-metabolite-idsm: A detected metabolite is kept if the IDSM chemical structure search finds a ChEBI compound similar to it (Sachem similarity of at least 0.9) that is a metabolite of a PlantMetWiki pathway. Returns the similar compound, the score and the pathways. The detected metabolite is given by its SMILES in the two BIND lines (here 2,5-dihydroxybenzoate, a metabolite of the Brassicaceae annotation pilot, Wikidata Q27125148); in a run over the evidence graph the SMILES come from the annotations (for example from the Wikidata property P233). One metabolite per run, because the PlantMetWiki endpoint does not accept two SERVICE clauses with a VALUES block. TESTED 2026-11-11 on the public endpoints: 7 rows in under 1 s."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "PlantMetWiki pathway" , "PlantMetWiki metabolite" , "Wikidata" , "SMILES" ;
+    rdfs:comment "metabolite-similar-to-pathway-metabolite-idsm: A detected metabolite is kept if the IDSM chemical structure search finds a ChEBI compound similar to it (Sachem similarity of at least 0.9) that is a metabolite of a PlantMetWiki pathway. Returns the similar compound, the score and the pathways. The detected metabolite is given by its SMILES in the two BIND lines (here 2,5-dihydroxybenzoate, a metabolite of the Brassicaceae annotation pilot, Wikidata Q27125148); in a run over the evidence graph the SMILES come from the annotations (for example from the Wikidata property P233). One metabolite per run, because the PlantMetWiki endpoint does not accept two SERVICE clauses with a VALUES block. OUTPUT: a list of metabolites (putative: the detected metabolite is kept as a putative member of a pathway when it is structurally similar to a metabolite of that pathway), with the pathway, the similar ChEBI compound and the similarity score as metadata."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "PlantMetWiki pathway" , "PlantMetWiki metabolite" , "Wikidata" , "SMILES" , "output: metabolites" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX sachem: <http://bioinfo.uochb.cas.cz/rdf/v1.0/sachem#>
 
-SELECT DISTINCT ?detectedMetabolite ?similarChebi ?score ?pathway WHERE {
-  BIND("2,5-dihydroxybenzoate" AS ?detectedMetabolite)
+SELECT DISTINCT ?component ?componentType ?pathway ?similarChebi ?score WHERE {
+  BIND("2,5-dihydroxybenzoate" AS ?component)
   BIND("OC(=O)c1cc(O)ccc1O" AS ?smiles)
+  BIND("metabolite" AS ?componentType)
   SERVICE <https://idsm.elixir-czech.cz/sparql/endpoint/chebi> {
     [ sachem:compound ?similarChebi ; sachem:score ?score ]
       sachem:similaritySearch [ sachem:query ?smiles ; sachem:cutoff 9e-1 ] .

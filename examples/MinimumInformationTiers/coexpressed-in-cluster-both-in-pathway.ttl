@@ -5,8 +5,8 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:coexpressed-in-cluster-both-in-pathway a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "coexpressed-in-cluster-both-in-pathway: As in `coexpressed-in-same-cluster`, and both genes are listed in a PlantMetWiki pathway (by their Solyc loci); returns the pathways of the two genes and whether it is the same pathway. NOT RUNNABLE ON THE CURRENT GRAPHS (see `coexpressed-in-same-cluster`). TESTED 2026-11-10: did NOT finish within 280 s (two unbound federated calls to PlantMetWiki); needs a LIMIT or a cached lookup."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 3: plantiSMASH-predicted BGCs, predicted gene clusters" , "case 4: transcriptomics, gene co-expression values" , "case 6: paired omics, transcript-metabolite associations" , "biosynthetic gene cluster" , "plantiSMASH" , "co-expression" , "gene" , "Solyc locus" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "no data yet" ;
+    rdfs:comment "coexpressed-in-cluster-both-in-pathway: As in `coexpressed-in-same-cluster`, and both genes are listed in a PlantMetWiki pathway (by their Solyc loci); returns the pathways of the two genes and whether it is the same pathway. NOT RUNNABLE ON THE CURRENT GRAPHS (see `coexpressed-in-same-cluster`). OUTPUT: a list of genes (supported members of a pathway: co-expressed genes in the same biosynthetic gene cluster that are both listed in PlantMetWiki pathways); the pathway of the gene, the partner gene and its pathway, and whether they are the same pathway are metadata."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 3: plantiSMASH-predicted BGCs, predicted gene clusters" , "case 4: transcriptomics, gene co-expression values" , "case 6: paired omics, transcript-metabolite associations" , "biosynthetic gene cluster" , "plantiSMASH" , "co-expression" , "gene" , "Solyc locus" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "no data yet" , "output: genes" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX sio: <http://semanticscience.org/resource/>
@@ -14,28 +14,29 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?cluster ?locusA ?locusB ?pathwayA ?pathwayB (?pathwayA = ?pathwayB AS ?samePathway) WHERE {
+SELECT DISTINCT ?component ?componentType ?pathway ?partnerGene ?partnerPathway (?pathway = ?partnerPathway AS ?samePathway) ?cluster WHERE {
   ?cluster a obo:SO_0002357 ; obo:BFO_0000051 ?partA , ?partB .
   ?assocA a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?geneA ; sio:SIO_000772/lodp:functionalCluster ?functionalCluster .
   ?assocB a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?geneB ; sio:SIO_000772/lodp:functionalCluster ?functionalCluster .
-  FILTER(STR(?geneA) < STR(?geneB))
-  BIND(REPLACE(STR(?geneA), "^.*[?&]g=", "") AS ?locusA)
-  BIND(REPLACE(STR(?geneB), "^.*[?&]g=", "") AS ?locusB)
-  FILTER(STRENDS(STR(?partA), ?locusA) && STRENDS(STR(?partB), ?locusB))
+  FILTER(?geneA != ?geneB)
+  BIND(REPLACE(STR(?geneA), "^.*[?&]g=", "") AS ?component)
+  BIND(REPLACE(STR(?geneB), "^.*[?&]g=", "") AS ?partnerGene)
+  FILTER(STRENDS(STR(?partA), ?component) && STRENDS(STR(?partB), ?partnerGene))
+  BIND("gene" AS ?componentType)
   SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-    SELECT DISTINCT ?locusA ?pathwayA WHERE {
-      ?nA dcterms:isPartOf ?gA ; v:gpmlProperty ?bA . ?bA v:value ?vA .
-      FILTER(REGEX(STR(?vA), "^Solyc[0-9]+g[0-9]+", "i"))
-      BIND(CONCAT("Solyc", SUBSTR(STR(?vA), 6, 9)) AS ?locusA)
-      BIND(REPLACE(STR(?gA), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathwayA)
+    SELECT DISTINCT ?component ?pathway WHERE {
+      ?geneNodecomponent dcterms:isPartOf ?gpcomponent ; v:gpmlProperty ?bgcomponent . ?bgcomponent v:value ?gvcomponent .
+      FILTER(REGEX(STR(?gvcomponent), "^Solyc[0-9]+g[0-9]+", "i"))
+      BIND(CONCAT("Solyc", SUBSTR(STR(?gvcomponent), 6, 9)) AS ?component)
+      BIND(REPLACE(STR(?gpcomponent), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
     }
   }
   SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-    SELECT DISTINCT ?locusB ?pathwayB WHERE {
-      ?nB dcterms:isPartOf ?gB ; v:gpmlProperty ?bB . ?bB v:value ?vB .
-      FILTER(REGEX(STR(?vB), "^Solyc[0-9]+g[0-9]+", "i"))
-      BIND(CONCAT("Solyc", SUBSTR(STR(?vB), 6, 9)) AS ?locusB)
-      BIND(REPLACE(STR(?gB), "^.*/Pathway/(PC[0-9]+)_.*$", "$1") AS ?pathwayB)
+    SELECT DISTINCT ?partnerGene ?partnerPathway WHERE {
+      ?geneNodepartnerGene dcterms:isPartOf ?gppartnerGene ; v:gpmlProperty ?bgpartnerGene . ?bgpartnerGene v:value ?gvpartnerGene .
+      FILTER(REGEX(STR(?gvpartnerGene), "^Solyc[0-9]+g[0-9]+", "i"))
+      BIND(CONCAT("Solyc", SUBSTR(STR(?gvpartnerGene), 6, 9)) AS ?partnerGene)
+      BIND(REPLACE(STR(?gppartnerGene), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?partnerPathway)
     }
   }
 }

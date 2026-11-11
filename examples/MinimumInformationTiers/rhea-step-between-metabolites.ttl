@@ -5,8 +5,8 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:rhea-step-between-metabolites a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "rhea-step-between-metabolites: Two detected metabolites are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. TESTED 2026-11-10: did NOT finish (no result within 280 s in one run; in another the local store was killed by the system after about 50 s, probably out of memory). It makes three unbound federated calls and a join over Rhea; run it on a subset of features or with the lookups cached."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "ChEBI" , "Rhea" , "enzyme" , "UniProt" , "PlantMetWiki metabolite" , "PlantMetWiki reaction" , "pathway expansion" , "federated query" , "local evidence graph" ;
+    rdfs:comment "rhea-step-between-metabolites: Two detected metabolites are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. OUTPUT: a list of reactions (the PlantMetWiki reactions with a Rhea reaction that connects two detected metabolites and a known UniProt enzyme) with their pathway; the Rhea reaction, the enzyme and the two detected metabolites (substrate and product features) are metadata."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "ChEBI" , "Rhea" , "enzyme" , "UniProt" , "PlantMetWiki metabolite" , "PlantMetWiki reaction" , "pathway expansion" , "federated query" , "local evidence graph" , "output: reactions" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -14,14 +14,16 @@ PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
 PREFIX rh: <http://rdf.rhea-db.org/>
 
-SELECT DISTINCT ?featureA ?featureB ?rhea ?pmwReaction ?uniprot WHERE {
-  { SELECT DISTINCT ?pmwReaction ?rhea ?uniprot WHERE {
+SELECT DISTINCT ?component ?componentType ?pathway ?rhea ?uniprot ?substrateFeature ?productFeature WHERE {
+  { SELECT DISTINCT ?component ?pathway ?rhea ?uniprot WHERE {
       SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-        ?pmwReaction a gpml:Interaction ; v:gpmlProperty ?br , ?bu . ?br v:key "AlternativeId_Rhea" ; v:value ?rheaId . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
+        ?component a gpml:Interaction ; v:gpmlProperty ?br , ?bu . ?br v:key "AlternativeId_Rhea" ; v:value ?rheaId . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
         BIND(IRI(CONCAT("http://rdf.rhea-db.org/", STR(?rheaId))) AS ?rhea)
         BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
+        BIND(REPLACE(STR(?component), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
       }
   } LIMIT 300 }
+  BIND("reaction" AS ?componentType)
   SERVICE <https://sparql.rhea-db.org/sparql> {
     ?rhea rh:side ?sideA , ?sideB .
     ?sideA rh:contains/rh:compound/rh:chebi ?chebiA .
@@ -42,8 +44,8 @@ SELECT DISTINCT ?featureA ?featureB ?rhea ?pmwReaction ?uniprot WHERE {
       BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?cB))) AS ?chebiB)
     }
   }
-  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
-  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB .
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?substrateFeature ; skos:closeMatch ?keyA .
+  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?productFeature ; skos:closeMatch ?keyB .
   FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/") && STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
   FILTER(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) = ?block1A && SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) = ?block1B)
 }

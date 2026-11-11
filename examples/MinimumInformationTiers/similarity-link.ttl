@@ -5,15 +5,30 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:similarity-link a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "similarity-link: Two detected metabolites are linked by a similarity metric (for example the cosine score of the MS/MS spectra, or an edge of a molecular network) above a threshold. The link is read as lodp:similarTo with lodp:similarityScore. NOT RUNNABLE ON THE CURRENT GRAPHS: no feature-to-feature similarity is in the RDF yet."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite feature" , "similarity metric" , "MS/MS spectral similarity" , "molecular network" , "local evidence graph" , "no data yet" ;
+    rdfs:comment "similarity-link: Two detected metabolites are linked by a similarity metric (for example the cosine score of the MS/MS spectra, or an edge of a molecular network) above a threshold. The link is read as lodp:similarTo with lodp:similarityScore. NOT RUNNABLE ON THE CURRENT GRAPHS: no feature-to-feature similarity is in the RDF yet. OUTPUT: a list of putative metabolites of a pathway: detected metabolites linked by a similarity metric (above a threshold) to a metabolite that is in the pathway (the pathway, the metabolite it is inferred from, the metric and the score are metadata)."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite feature" , "similarity metric" , "MS/MS spectral similarity" , "molecular network" , "local evidence graph" , "no data yet" , "output: metabolites" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?featureA ?featureB ?metric ?score WHERE {
-  ?link a lodp:FeatureSimilarity ; lodp:featureA ?featureA ; lodp:featureB ?featureB ;
+SELECT ?component ?componentType ?pathway ?viaMetabolite ?metric ?score WHERE {
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
+  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/"))
+  BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+  ?link a lodp:FeatureSimilarity ; lodp:featureA ?featureA ; lodp:featureB ?component ;
         lodp:similarityMetric ?metric ; lodp:similarityScore ?score .
   FILTER(?score >= 0.7)
+  BIND("metabolite" AS ?componentType)
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?blockA ?viaMetabolite ?pathway WHERE {
+      ?pmwNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bk . ?bk v:key "InchiKey" ; v:value ?ik .
+      BIND(STRAFTER(?ik, "InChIKey=") AS ?viaMetabolite)
+      BIND(SUBSTR(?viaMetabolite, 1, 14) AS ?blockA)
+      BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+    }
+  }
 }
 ORDER BY DESC(?score)
 LIMIT 100""" ;

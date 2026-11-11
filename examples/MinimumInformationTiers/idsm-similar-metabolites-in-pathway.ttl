@@ -5,34 +5,32 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:idsm-similar-metabolites-in-pathway a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "idsm-similar-metabolites-in-pathway: For the directed conversions of one PlantMetWiki pathway (here PC968, alpha-tomatine biosynthesis; change the identifier), finds the ChEBI compounds that are structurally similar (Sachem similarity of at least 0.98) to the source and to the target metabolite of each conversion, using the IDSM chemical structure search service. May be slower because it depends on the external IDSM endpoint. TESTED 2026-11-11 on the public endpoints: returns rows in about 1 s."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "case 5: metabolomics, metabolite annotations" , "PlantMetWiki pathway" , "conversion" , "substrate and product" ;
+    rdfs:comment "idsm-similar-metabolites-in-pathway: For the directed conversions of one PlantMetWiki pathway (here PC968, alpha-tomatine biosynthesis; change the identifier), finds the ChEBI compounds that are structurally similar (Sachem similarity of at least 0.98) to the source and to the target metabolite of each conversion, using the IDSM chemical structure search service. May be slower because it depends on the external IDSM endpoint. NOTE: this version looks at the substrates (wp:source) of the conversions; for the products change wp:source to wp:target and the role to product. When tested on 2026-11-11 the substrate version returned 19 rows in a few seconds, and the product version ended with a proxy error (502) of the PlantMetWiki endpoint, so it is not shipped as a separate query. OUTPUT: a list of metabolites (putative members of the pathway: ChEBI compounds structurally similar to a substrate or product of a conversion of the pathway), with the pathway, the pathway metabolite they are similar to, its role (substrate or product), the conversion and the similarity score as metadata."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "IDSM" , "Sachem" , "chemical similarity search" , "structure similarity" , "ChEBI" , "metabolite" , "federated query" , "runs on public endpoints" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "case 5: metabolomics, metabolite annotations" , "PlantMetWiki pathway" , "conversion" , "substrate and product" , "output: metabolites" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX wp: <http://vocabularies.wikipathways.org/wp#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX sso: <http://semanticscience.org/resource/>
 PREFIX sachem: <http://bioinfo.uochb.cas.cz/rdf/v1.0/sachem#>
-
-SELECT DISTINCT ?sourceChebi ?similarToSource ?targetChebi ?similarToTarget WHERE {
+SELECT DISTINCT ?component ?componentType ?pathway ?similarTo ?role ?conversion ?score WHERE {
   ?pw a wp:Pathway ; dcterms:identifier "PC968" .
-  ?conversion a wp:Conversion ; dcterms:isPartOf ?pw ; wp:source ?source ; wp:target ?target .
-  BIND(CONCAT("InChIKey=", STRAFTER(STR(?source), "inchikey/")) AS ?ikSource)
-  BIND(CONCAT("InChIKey=", STRAFTER(STR(?target), "inchikey/")) AS ?ikTarget)
-  ?mSource dcterms:isPartOf ?gp ; v:gpmlProperty ?s1 , ?s2 . ?s1 v:key "InchiKey" ; v:value ?ikSource . ?s2 v:key "AlternativeId_Chebi" ; v:value ?chebiSource .
-  ?mTarget dcterms:isPartOf ?gp ; v:gpmlProperty ?t1 , ?t2 . ?t1 v:key "InchiKey" ; v:value ?ikTarget . ?t2 v:key "AlternativeId_Chebi" ; v:value ?chebiTarget .
+  ?conversion a wp:Conversion ; dcterms:isPartOf ?pw ; wp:source ?partner .
+  BIND("PC968" AS ?pathway)
+  BIND("substrate" AS ?role)
+  BIND(CONCAT("InChIKey=", STRAFTER(STR(?partner), "inchikey/")) AS ?ik)
+  ?mNode dcterms:isPartOf ?gp ; v:gpmlProperty ?s1 , ?s2 . ?s1 v:key "InchiKey" ; v:value ?ik . ?s2 v:key "AlternativeId_Chebi" ; v:value ?chebi .
   FILTER(STRSTARTS(STR(?gp), "http://rdf-plantmetwiki.bioinformatics.nl/Pathway/PC968_r"))
-  BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?chebiSource))) AS ?sourceChebi)
-  BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?chebiTarget))) AS ?targetChebi)
+  BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?chebi))) AS ?similarTo)
+  BIND("metabolite" AS ?componentType)
   SERVICE <https://idsm.elixir-czech.cz/sparql/endpoint/chebi> {
-    ?sourceChebi ^sso:is-attribute-of / sso:has-value ?molfileSource .
-    ?targetChebi ^sso:is-attribute-of / sso:has-value ?molfileTarget .
-    [ sachem:compound ?similarToSource ; sachem:score ?scoreSource ]
-      sachem:similaritySearch [ sachem:query ?molfileSource ; sachem:cutoff 9.8e-1 ] .
-    [ sachem:compound ?similarToTarget ; sachem:score ?scoreTarget ]
-      sachem:similaritySearch [ sachem:query ?molfileTarget ; sachem:cutoff 9.8e-1 ] .
+    ?similarTo ^sso:is-attribute-of / sso:has-value ?molfile .
+    [ sachem:compound ?component ; sachem:score ?score ]
+      sachem:similaritySearch [ sachem:query ?molfile ; sachem:cutoff 9.8e-1 ] .
   }
+  FILTER(?component != ?similarTo)
 }
+ORDER BY DESC(?score)
 LIMIT 100""" ;
     schema:target <https://plantmetwiki.bioinformatics.nl/sparql> ;
     spex:federatesWith <https://idsm.elixir-czech.cz/sparql/endpoint/chebi> .

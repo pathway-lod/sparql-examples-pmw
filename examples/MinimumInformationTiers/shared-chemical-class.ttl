@@ -5,22 +5,31 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:shared-chemical-class a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "shared-chemical-class: Two detected metabolites of the same dataset, each with an annotation that matches PlantMetWiki (`annotation-matches-plantmetwiki`), share a chemical class (an NPClassifier term). The class is read from the annotation as lodp:chemicalClass. NOT RUNNABLE ON THE CURRENT GRAPHS: the annotation graph has no class values yet (NPClassifier is a step of the consensus workflow, but its output is not in the RDF)."@en ;
-    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "metabolite feature" , "chemical class" , "NPClassifier" , "InChIKey" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" , "no data yet" ;
+    rdfs:comment "shared-chemical-class: Two detected metabolites of the same dataset, each with an annotation that matches PlantMetWiki (`annotation-matches-plantmetwiki`), share a chemical class (an NPClassifier term). The class is read from the annotation as lodp:chemicalClass. NOT RUNNABLE ON THE CURRENT GRAPHS: the annotation graph has no class values yet (NPClassifier is a step of the consensus workflow, but its output is not in the RDF). OUTPUT: a list of putative metabolites of a pathway: detected metabolites that share a chemical class with a metabolite that is in the pathway (the pathway, the metabolite it is inferred from and the class are metadata)."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "metabolite feature" , "chemical class" , "NPClassifier" , "InChIKey" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" , "no data yet" , "output: metabolites" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?featureA ?featureB ?class WHERE {
-  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA ; lodp:chemicalClass ?class .
-  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB ; lodp:chemicalClass ?class .
-  ?featureA lodp:dataset ?dataset . ?featureB lodp:dataset ?dataset .
-  FILTER(STR(?featureA) < STR(?featureB))
-  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/") && STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
+SELECT ?component ?componentType ?pathway ?viaMetabolite ?sharedClass WHERE {
+  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
+  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/"))
   BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
-  BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
-  { SELECT DISTINCT ?blockA WHERE { SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> { ?n v:gpmlProperty ?b . ?b v:key "InchiKey" ; v:value ?ik . BIND(SUBSTR(STRAFTER(?ik, "InChIKey="), 1, 14) AS ?blockA) } } }
+  ?annA lodp:chemicalClass ?sharedClass .
+  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?component ; lodp:chemicalClass ?sharedClass .
+  ?featureA lodp:dataset ?dataset . ?component lodp:dataset ?dataset .
+  FILTER(?featureA != ?component)
+  BIND("metabolite" AS ?componentType)
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?blockA ?viaMetabolite ?pathway WHERE {
+      ?pmwNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bk . ?bk v:key "InchiKey" ; v:value ?ik .
+      BIND(STRAFTER(?ik, "InChIKey=") AS ?viaMetabolite)
+      BIND(SUBSTR(?viaMetabolite, 1, 14) AS ?blockA)
+      BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+    }
+  }
 }
 LIMIT 100""" ;
     schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
