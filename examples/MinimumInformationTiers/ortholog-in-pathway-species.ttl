@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:ortholog-in-pathway-species a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "The metabolite matches a PlantMetWiki pathway (as in `gene-and-metabolite-in-same-pathway`) and the gene is an ortholog of a gene that PlantMetWiki lists in that pathway in another species. The orthology is read from the graph as lodp:orthologOf (for example from OrthoDB groups, see tier 5 of the pathway-component queries); the gene of the other species is matched to the pathway by its UniProt accession. NOT RUNNABLE ON THE CURRENT GRAPHS: orthologs are not in the RDF yet."@en ;
+    rdfs:comment "ortholog-in-pathway-species: The metabolite matches a PlantMetWiki pathway (as in `gene-and-metabolite-in-same-pathway`) and the gene is an ortholog of a gene that PlantMetWiki lists in that pathway in another species. The orthology is read from the graph as lodp:orthologOf (for example from OrthoDB groups, see tier 5 of the pathway-component queries); the gene of the other species is matched to the pathway by its UniProt accession. NOT RUNNABLE ON THE CURRENT GRAPHS: orthologs are not in the RDF yet."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 6: paired omics, transcript-metabolite associations" , "gene-metabolite association" , "paired omics" , "orthologs" , "OrthoDB" , "metabolite annotation" , "InChIKey" , "UniProt" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "no data yet" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>

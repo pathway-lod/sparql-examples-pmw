@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:ortholog-plus-ml-prediction a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "As in `ortholog-in-pathway-species`, and the transformation also matches an enzymatic transformation predicted by a model on the PlantMetWiki graph (case 7, for example the predictions of PlantMetBench): a predicted link between the enzyme the gene is an ortholog of and a reaction that connects the two metabolites. The prediction is read as lodp:PredictedLink with lodp:predictionScore and the model run. NOT RUNNABLE ON THE CURRENT GRAPHS: no predictions are in the RDF yet."@en ;
+    rdfs:comment "ortholog-plus-ml-prediction: As in `ortholog-in-pathway-species`, and the transformation also matches an enzymatic transformation predicted by a model on the PlantMetWiki graph (case 7, for example the predictions of PlantMetBench): a predicted link between the enzyme the gene is an ortholog of and a reaction that connects the two metabolites. The prediction is read as lodp:PredictedLink with lodp:predictionScore and the model run. NOT RUNNABLE ON THE CURRENT GRAPHS: no predictions are in the RDF yet."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 6: paired omics, transcript-metabolite associations" , "case 7: unsupervised GNN predictions of reactions (conversion steps)" , "gene-metabolite association" , "paired omics" , "orthologs" , "machine learning prediction" , "predicted enzymatic transformation" , "local evidence graph" , "no data yet" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>

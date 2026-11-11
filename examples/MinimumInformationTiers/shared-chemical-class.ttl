@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:shared-chemical-class a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "Two detected metabolites of the same dataset, each with an annotation that matches PlantMetWiki (`annotation-matches-plantmetwiki`), share a chemical class (an NPClassifier term). The class is read from the annotation as lodp:chemicalClass. NOT RUNNABLE ON THE CURRENT GRAPHS: the annotation graph has no class values yet (NPClassifier is a step of the consensus workflow, but its output is not in the RDF)."@en ;
+    rdfs:comment "shared-chemical-class: Two detected metabolites of the same dataset, each with an annotation that matches PlantMetWiki (`annotation-matches-plantmetwiki`), share a chemical class (an NPClassifier term). The class is read from the annotation as lodp:chemicalClass. NOT RUNNABLE ON THE CURRENT GRAPHS: the annotation graph has no class values yet (NPClassifier is a step of the consensus workflow, but its output is not in the RDF)."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "metabolite feature" , "chemical class" , "NPClassifier" , "InChIKey" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" , "no data yet" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>

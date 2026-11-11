@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:coexpressed-in-cluster-one-in-pathway a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "As in `coexpressed-in-same-cluster`, and only one of the two genes is listed in a PlantMetWiki pathway (by its Solyc locus). This is a lead to extend that pathway with the other gene. NOT RUNNABLE ON THE CURRENT GRAPHS (see `coexpressed-in-same-cluster`). TESTED 2026-11-10: 0 rows in 149 s on the association graph and the sample graph."@en ;
+    rdfs:comment "coexpressed-in-cluster-one-in-pathway: As in `coexpressed-in-same-cluster`, and only one of the two genes is listed in a PlantMetWiki pathway (by its Solyc locus). This is a lead to extend that pathway with the other gene. NOT RUNNABLE ON THE CURRENT GRAPHS (see `coexpressed-in-same-cluster`). TESTED 2026-11-10: 0 rows in 149 s on the association graph and the sample graph."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 3: plantiSMASH-predicted BGCs, predicted gene clusters" , "case 4: transcriptomics, gene co-expression values" , "case 6: paired omics, transcript-metabolite associations" , "biosynthetic gene cluster" , "plantiSMASH" , "co-expression" , "gene" , "Solyc locus" , "PlantMetWiki pathway" , "pathway expansion" , "federated query" , "local evidence graph" , "no data yet" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>

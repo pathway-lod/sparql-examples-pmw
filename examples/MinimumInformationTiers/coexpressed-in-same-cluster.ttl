@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:coexpressed-in-same-cluster a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "Two genes that are co-expressed (here: genes associated with the same metabolite feature in the same MEANtools functional cluster) are both parts of the same plantiSMASH biosynthetic gene cluster (cluster obo:BFO_0000051 gene). Returns the pairs and the cluster. NOT RUNNABLE ON THE CURRENT GRAPHS: the cluster graph lists only the genes linked to a pathway, not all genes of the cluster, and the tomato clusters are not in the RDF."@en ;
+    rdfs:comment "coexpressed-in-same-cluster: Two genes that are co-expressed (here: genes associated with the same metabolite feature in the same MEANtools functional cluster) are both parts of the same plantiSMASH biosynthetic gene cluster (cluster obo:BFO_0000051 gene). Returns the pairs and the cluster. NOT RUNNABLE ON THE CURRENT GRAPHS: the cluster graph lists only the genes linked to a pathway, not all genes of the cluster, and the tomato clusters are not in the RDF."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 3: plantiSMASH-predicted BGCs, predicted gene clusters" , "case 4: transcriptomics, gene co-expression values" , "case 6: paired omics, transcript-metabolite associations" , "biosynthetic gene cluster" , "plantiSMASH" , "co-expression" , "gene-metabolite association" , "MEANtools" , "gene" , "local evidence graph" , "no data yet" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>

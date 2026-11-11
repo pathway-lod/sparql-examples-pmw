@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:gene-in-plantmetwiki-pathway a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "Gene side of `gene-and-metabolite-in-same-pathway`. The gene of each association is looked up in PlantMetWiki by its Solyc locus and the pathways that list it are returned. Counts the associations whose gene is in at least one pathway. TESTED 2026-11-10: on the 1,293 associations of the MEANtools pilot (association.ttl) no gene is listed by its Solyc locus in a PlantMetWiki pathway (0 rows). The two pathways PC70 and PC968 that appear when the sample graph is loaded as well come from its single association (GAME17, Solyc07g043480)."@en ;
+    rdfs:comment "gene-in-plantmetwiki-pathway: Gene side of `gene-and-metabolite-in-same-pathway`. The gene of each association is looked up in PlantMetWiki by its Solyc locus and the pathways that list it are returned. Counts the associations whose gene is in at least one pathway. TESTED 2026-11-10: on the 1,293 associations of the MEANtools pilot (association.ttl) no gene is listed by its Solyc locus in a PlantMetWiki pathway (0 rows). The two pathways PC70 and PC968 that appear when the sample graph is loaded as well come from its single association (GAME17, Solyc07g043480)."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 6: paired omics, transcript-metabolite associations" , "gene-metabolite association" , "paired omics" , "MEANtools" , "gene" , "Solyc locus" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>

@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:similarity-link a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "Two detected metabolites are linked by a similarity metric (for example the cosine score of the MS/MS spectra, or an edge of a molecular network) above a threshold. The link is read as lodp:similarTo with lodp:similarityScore. NOT RUNNABLE ON THE CURRENT GRAPHS: no feature-to-feature similarity is in the RDF yet."@en ;
+    rdfs:comment "similarity-link: Two detected metabolites are linked by a similarity metric (for example the cosine score of the MS/MS spectra, or an edge of a molecular network) above a threshold. The link is read as lodp:similarTo with lodp:similarityScore. NOT RUNNABLE ON THE CURRENT GRAPHS: no feature-to-feature similarity is in the RDF yet."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite feature" , "similarity metric" , "MS/MS spectral similarity" , "molecular network" , "local evidence graph" , "no data yet" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
