@@ -1,0 +1,98 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:ranked-pathway-metabolites a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "ranked-pathway-metabolites: One query for all the evidence on metabolites of pathways. A component is a metabolite (identified by the first block of its InChIKey) in a pathway. Each piece of evidence is an optional branch (annotation matches a PlantMetWiki metabolite, exactly or by connectivity, with the number of tools that agree; shared chemical class; similarity link). The evidence is grouped into families that are not independent (identity, relatedness, reaction link); a component takes the weight of the strongest tier of each family, and the score is the noisy-OR over the families, 1 - (1 - w_identity)(1 - w_relatedness)(1 - w_reaction). OUTPUT: a ranked list of putative or supported metabolites with their pathway, the score, the tiers passed and the weights of each family as columns. The weights are drafts to be calibrated. CAVEAT: in the current annotation graph the closeMatch key is the PlantMetWiki key that the pilot matched, so the exact tier is true for almost every pair; it becomes meaningful when the graph stores the tool's own InChIKey."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "ranked output" , "score" , "noisy-OR" , "all evidence" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "InChIKey" , "annotation tool" , "PlantMetWiki metabolite" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "output: metabolites" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX sio: <http://semanticscience.org/resource/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+# Ranked pathway metabolites. A component is a metabolite (identified by the first block of its InChIKey) in a pathway.
+# Every piece of evidence is one optional branch of the UNION; a component gets the weight of the strongest tier of each
+# evidence family, and the score is the noisy-OR over the families: score = 1 - (1 - w_identity) * (1 - w_relatedness) * (1 - w_reaction).
+SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wIdentity ?wRelatedness ?wReaction ?supportingTools ?supportingFeatures WHERE {
+  { SELECT ?component ?pathway
+            (MAX(?wId) AS ?wIdentity) (MAX(?wRel) AS ?wRelatedness) (MAX(?wRea) AS ?wReaction)
+            (GROUP_CONCAT(DISTINCT ?tier; separator=", ") AS ?tiersPassed)
+            (MAX(?nTools) AS ?supportingTools) (MAX(?nFeatures) AS ?supportingFeatures)
+     WHERE {
+      { # family identity: the annotation of a detected metabolite matches a PlantMetWiki metabolite of the pathway
+         # exact = full InChIKey (with stereo and charge), otherwise first block (connectivity); the weight grows with the number of tools that agree
+        SELECT ?component ?pathway ?wId ?tier ?nTools ?nFeatures WHERE {
+          { SELECT ?component ?pathway (MAX(?isExact) AS ?exact) (COUNT(DISTINCT ?tool) AS ?nTools) (COUNT(DISTINCT ?feature) AS ?nFeatures) WHERE {
+              ?annotation a lodp:MetaboliteAnnotation ; lodp:feature ?feature ; skos:closeMatch ?key ;
+                  sio:SIO_000772/prov:wasGeneratedBy/lodp:software ?tool .
+              FILTER(STRSTARTS(STR(?key), "https://identifiers.org/inchikey/"))
+              BIND(STRAFTER(STR(?key), "inchikey/") AS ?fullKey)
+              BIND(SUBSTR(?fullKey, 1, 14) AS ?block1)
+              SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?block1 ?pmwKey ?pathway WHERE {
+          ?pmwNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bk . ?bk v:key "InchiKey" ; v:value ?ik .
+          BIND(STRAFTER(?ik, "InChIKey=") AS ?pmwKey)
+          BIND(SUBSTR(?pmwKey, 1, 14) AS ?block1)
+          BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+              BIND(IF(?fullKey = ?pmwKey, 1, 0) AS ?isExact)
+              BIND(IRI(CONCAT("https://identifiers.org/inchikey/", ?block1)) AS ?component)
+            } GROUP BY ?component ?pathway }
+          BIND(IF(?nTools >= 3, 1.0, 0.5 + 0.15 * ?nTools) AS ?support)
+          BIND(IF(?exact = 1, 0.95, 0.80) * ?support AS ?wId)
+          BIND(IF(?exact = 1, "inchikey-exact, inchikey-first-block", "inchikey-first-block") AS ?tier)
+        } }
+      UNION
+      { # family relatedness: a detected metabolite shares a chemical class (NPClassifier) with a metabolite of the pathway (weight 0.20)
+        SELECT ?component ?pathway ?wRel ?tier WHERE {
+          ?annA a lodp:MetaboliteAnnotation ; skos:closeMatch ?keyA ; lodp:chemicalClass ?cls .
+          ?annB a lodp:MetaboliteAnnotation ; skos:closeMatch ?keyB ; lodp:chemicalClass ?cls .
+          FILTER(?keyA != ?keyB && STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/"))
+          BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+          BIND(IRI(CONCAT("https://identifiers.org/inchikey/", SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14))) AS ?component)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?blockA ?viaKey ?pathway WHERE {
+          ?pmwNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bk . ?bk v:key "InchiKey" ; v:value ?ik .
+          BIND(STRAFTER(?ik, "InChIKey=") AS ?viaKey)
+          BIND(SUBSTR(?viaKey, 1, 14) AS ?blockA)
+          BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          BIND(0.20 AS ?wRel) BIND("shared-chemical-class" AS ?tier)
+        } }
+      UNION
+      { # family relatedness: linked to a metabolite of the pathway by a similarity metric (weight 0.40 x the score)
+        SELECT ?component ?pathway ?wRel ?tier WHERE {
+          ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
+          ?link a lodp:FeatureSimilarity ; lodp:featureA ?featureA ; lodp:featureB ?featureB ; lodp:similarityScore ?s .
+          ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB .
+          FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/"))
+          BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+          BIND(IRI(CONCAT("https://identifiers.org/inchikey/", SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14))) AS ?component)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?blockA ?viaKey ?pathway WHERE {
+          ?pmwNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bk . ?bk v:key "InchiKey" ; v:value ?ik .
+          BIND(STRAFTER(?ik, "InChIKey=") AS ?viaKey)
+          BIND(SUBSTR(?viaKey, 1, 14) AS ?blockA)
+          BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          BIND(0.40 * ?s AS ?wRel) BIND("similarity-link" AS ?tier)
+        } }
+      # not in this live query (heavy; their weights are in weights.csv of the notebooks folder, for when their results are materialised):
+      #   structure-similarity (family relatedness, 0.30), idsm-similar-metabolites (relatedness, 0.50),
+      #   rhea-step-between-metabolites (family reaction, 0.70)
+    } GROUP BY ?component ?pathway }
+  BIND(1 - (1 - COALESCE(?wIdentity, 0)) * (1 - COALESCE(?wRelatedness, 0)) * (1 - COALESCE(?wReaction, 0)) AS ?score)
+  BIND("metabolite" AS ?componentType)
+}
+ORDER BY DESC(?score) DESC(?supportingTools)
+LIMIT 5000""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

@@ -11,6 +11,8 @@ Every query of the minimum information tiers returns a **list of pathway compone
 * **putative / supported metabolites** (keyword *output: metabolites*)
 * **putative / supported genes in the same pathway** (keyword *output: genes*); the lowest tier is two genes in the same biosynthetic gene cluster
 
+The three `ranked-pathway-*` queries (metabolites, reactions, genes) put all the evidence of a scope together as optional parts and **rank the components by a score**: the evidence is grouped into families that are not independent, and the score is the noisy-OR over the strongest tier of each family. The single-tier queries are the building blocks.
+
 # Examples
 
 * [SIB Swiss Institute of Bioinformatics](https://sib-swiss.github.io/sparql-examples/)

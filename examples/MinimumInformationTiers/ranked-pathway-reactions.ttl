@@ -1,0 +1,80 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:ranked-pathway-reactions a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "ranked-pathway-reactions: One query for all the evidence on reactions of pathways. A component is a PlantMetWiki reaction in a pathway. Each piece of evidence is an optional branch (EC number, Rhea identifier, UniProt enzyme on the reaction; a conversion between associated metabolites catalysed by the enzyme of a co-expressed gene; a reaction predicted by a machine-learning model). The evidence is grouped into families (database identifiers, enzyme, omics, prediction); a component takes the strongest tier of each family and the score is the noisy-OR, 1 - (1 - w_database)(1 - w_enzyme)(1 - w_omics)(1 - w_prediction). OUTPUT: a ranked list of putative or supported reactions with their pathway, the score, the tiers passed and the weight of each family. The weights are drafts to be calibrated."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "ranked output" , "score" , "noisy-OR" , "all evidence" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "case 6: paired omics, transcript-metabolite associations" , "case 7: unsupervised GNN predictions of reactions (conversion steps)" , "reaction" , "EC number" , "Rhea" , "UniProt" , "enzyme" , "gene-metabolite association" , "co-expression" , "machine learning prediction" , "PlantMetWiki reaction" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "output: reactions" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX sio: <http://semanticscience.org/resource/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+
+# Ranked pathway reactions. A component is a reaction in a pathway. One optional branch per piece of evidence;
+# score = 1 - (1 - w_database) * (1 - w_enzyme) * (1 - w_omics) * (1 - w_prediction), each w the strongest tier of its family.
+SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wDatabase ?wEnzyme ?wOmics ?wPrediction WHERE {
+  { SELECT ?component ?pathway
+            (MAX(?wDb) AS ?wDatabase) (MAX(?wEnz) AS ?wEnzyme) (MAX(?wOm) AS ?wOmics) (MAX(?wPred) AS ?wPrediction)
+            (GROUP_CONCAT(DISTINCT ?tier; separator=", ") AS ?tiersPassed)
+     WHERE {
+      { # families database identifiers (Rhea 0.60, EC 0.40: the strongest counts) and enzyme (UniProt on the reaction, 0.70)
+        SELECT ?component ?pathway ?wDb ?wEnz ?tier WHERE {
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+            SELECT ?component ?pathway (MAX(?e) AS ?ec) (MAX(?r) AS ?rhea) (MAX(?u) AS ?uniprot) WHERE {
+              ?component a gpml:Interaction ; v:gpmlProperty/v:key "ReactionEquation" .
+              OPTIONAL { ?component v:gpmlProperty ?b1 . ?b1 v:key "EC_Number" . BIND(1 AS ?e) }
+              OPTIONAL { ?component v:gpmlProperty ?b2 . ?b2 v:key "AlternativeId_Rhea" . BIND(1 AS ?r) }
+              OPTIONAL { ?component v:gpmlProperty ?b3 . ?b3 v:key "AlternativeId_Uniprot" . BIND(1 AS ?u) }
+              BIND(REPLACE(STR(?component), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+            } GROUP BY ?component ?pathway
+          }
+          BIND(IF(BOUND(?rhea), 0.60, IF(BOUND(?ec), 0.40, 0.0)) AS ?wDb)
+          BIND(IF(BOUND(?uniprot), 0.70, 0.0) AS ?wEnz)
+          BIND(CONCAT(IF(BOUND(?ec), "ec;", ""), IF(BOUND(?rhea), "rhea;", ""), IF(BOUND(?uniprot), "uniprot;", "")) AS ?tier)
+        } }
+      UNION
+      { # family omics: a PlantMetWiki conversion between two associated metabolites is catalysed by the enzyme of a co-expressed gene (0.70)
+        SELECT ?component ?pathway ?wOm ?tier WHERE {
+          ?assocA a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?featureA , ?gene .
+          ?assocB a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?featureB , ?gene .
+          ?featureA a lodp:MetaboliteFeature . ?featureB a lodp:MetaboliteFeature . FILTER(?featureA != ?featureB)
+          ?gene lodp:uniprot ?uniprot .
+          ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; <http://www.w3.org/2004/02/skos/core#closeMatch> ?keyA .
+          ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; <http://www.w3.org/2004/02/skos/core#closeMatch> ?keyB .
+          BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+          BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
+          BIND(STRAFTER(STR(?uniprot), "uniprot/") AS ?acc)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+            SELECT DISTINCT ?blockA ?blockB ?acc ?component ?pathway WHERE {
+              ?component a <http://vocabularies.wikipathways.org/wp#Conversion> ; <http://purl.org/dc/terms/isPartOf> ?pw ; <http://vocabularies.wikipathways.org/wp#source> ?mA ; <http://vocabularies.wikipathways.org/wp#target> ?mB .
+              ?pw a <http://vocabularies.wikipathways.org/wp#Pathway> .
+              BIND(REPLACE(STR(?pw), "^.*/pathways/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+              ?cat a <http://vocabularies.wikipathways.org/wp#Catalysis> ; <http://vocabularies.wikipathways.org/wp#target> ?component ; <http://vocabularies.wikipathways.org/wp#source> ?enzyme .
+              BIND(SUBSTR(STRAFTER(STR(?mA), "inchikey/"), 1, 14) AS ?blockA)
+              BIND(SUBSTR(STRAFTER(STR(?mB), "inchikey/"), 1, 14) AS ?blockB)
+              BIND(STRAFTER(STR(?enzyme), "uniprot/") AS ?acc)
+            }
+          }
+          BIND(0.70 AS ?wOm) BIND("gene-catalyses-the-transformation" AS ?tier)
+        } }
+      UNION
+      { # family prediction: a reaction predicted by a machine-learning model (the 'ghost edge', 0.30)
+        SELECT ?component ?pathway ?wPred ?tier WHERE {
+          ?prediction a lodp:PredictedLink ; lodp:predictedReaction ?component ; lodp:predictionScore ?s .
+          OPTIONAL { ?component lodp:inPathway ?pathway }
+          BIND(0.30 AS ?wPred) BIND("ml-predicted-reaction" AS ?tier)
+        } }
+      # not in this live query (heavy; their weights are in weights.csv of the notebooks folder, for when their results are materialised):
+      #   rhea-step-between-metabolites (family omics, 0.60), idsm-similar-metabolite-with-coexpressed-catalysing-gene (omics, 0.50)
+    } GROUP BY ?component ?pathway }
+  BIND(1 - (1 - COALESCE(?wDatabase, 0)) * (1 - COALESCE(?wEnzyme, 0)) * (1 - COALESCE(?wOmics, 0)) * (1 - COALESCE(?wPrediction, 0)) AS ?score)
+  BIND("reaction" AS ?componentType)
+}
+ORDER BY DESC(?score)
+LIMIT 20000""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .

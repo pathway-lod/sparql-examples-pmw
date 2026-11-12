@@ -1,0 +1,129 @@
+@prefix ex: <https://pathway-lod.github.io/sparql-examples-pmw/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
+
+ex:ranked-pathway-genes a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
+    rdfs:comment "ranked-pathway-genes: One query for all the evidence on genes of pathways. A component is a gene (Solyc or Arabidopsis locus) in a pathway; the pathway is empty when the gene only has cluster evidence. Each piece of evidence is an optional branch (gene listed in the pathway; two genes in the same biosynthetic gene cluster; a gene of the cluster is in the pathway; both are in the same pathway; co-expressed with a gene of the pathway; ortholog of a pathway gene). Genes of a cluster and genes of a pathway are not independent evidence, so these tiers form one family (membership), co-expression and association another (omics), orthologs a third (sequence); the score is the noisy-OR over the families. OUTPUT: a ranked list of putative or supported genes of a pathway with the score, the tiers passed, the cluster and the weight of each family. The weights are drafts to be calibrated."@en ;
+    schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "ranked output" , "score" , "noisy-OR" , "all evidence" , "case 3: plantiSMASH-predicted BGCs, predicted gene clusters" , "case 4: transcriptomics, gene co-expression values" , "case 6: paired omics, transcript-metabolite associations" , "gene" , "Solyc locus" , "Arabidopsis locus" , "biosynthetic gene cluster" , "plantiSMASH" , "co-expression" , "orthologs" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "output: genes" ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
+PREFIX sio: <http://semanticscience.org/resource/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+# Ranked pathway genes. A component is a gene (Solyc or Arabidopsis locus) in a pathway; the pathway is unbound when the gene only
+# has cluster evidence (the lowest tier). One optional branch per piece of evidence. The genes of a biosynthetic gene cluster
+# and the genes of a pathway are not independent evidence, so the tiers 'same BGC', 'BGC with a gene in the pathway', 'BGC with both genes in
+# the pathway' and 'gene listed in the pathway' are ONE family (membership); co-expression and association are one family (omics);
+# orthologs one family (sequence). score = 1 - (1 - w_membership) * (1 - w_omics) * (1 - w_sequence).
+SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmics ?wSequence ?cluster WHERE {
+  { SELECT ?component ?pathway
+            (MAX(?wMem) AS ?wMembership) (MAX(?wOm) AS ?wOmics) (MAX(?wSeq) AS ?wSequence)
+            (GROUP_CONCAT(DISTINCT ?tier; separator=", ") AS ?tiersPassed) (SAMPLE(?cl) AS ?cluster)
+     WHERE {
+      { # membership: the gene is listed in a PlantMetWiki pathway (Solyc or Araport identifier), 0.90
+        SELECT ?component ?pathway ?wMem ?tier WHERE {
+          { ?assoc a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?component . FILTER(STRSTARTS(STR(?component), "https://plants.ensembl.org/"))
+          BIND(REPLACE(STR(?component), "^.*[?&]g=", "") AS ?geneId) }
+        UNION { ?cluster a obo:SO_0002357 ; obo:BFO_0000051 ?component . BIND(STRAFTER(STR(?component), "tair.name/") AS ?geneId) }
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?geneId ?pathway WHERE {
+          ?nodegeneId dcterms:isPartOf ?gpgeneId ; v:gpmlProperty ?bgeneId . ?bgeneId v:key ?kgeneId ; v:value ?gvgeneId .
+          FILTER(?kgeneId IN ("Synonym_1", "Synonym_2", "AlternativeId_Sgn", "AlternativeId_Araport"))
+          FILTER(REGEX(STR(?gvgeneId), "^(Solyc[0-9]+g[0-9]+|AT[1-5CM]G[0-9]+)", "i"))
+          BIND(IF(STRSTARTS(STR(?gvgeneId), "Solyc"), CONCAT("Solyc", SUBSTR(STR(?gvgeneId), 6, 9)), STRBEFORE(CONCAT(STR(?gvgeneId), "."), ".")) AS ?geneId)
+          BIND(REPLACE(STR(?gpgeneId), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          BIND(0.90 AS ?wMem) BIND("gene-in-plantmetwiki-pathway" AS ?tier)
+        } }
+      UNION
+      { # membership: two or more genes in the same biosynthetic gene cluster, 0.30 (no pathway)
+        SELECT ?component ?wMem ?tier ?cl WHERE {
+          ?cl a obo:SO_0002357 ; obo:BFO_0000051 ?component , ?other . FILTER(?component != ?other)
+          BIND(0.30 AS ?wMem) BIND("genes-in-same-bgc" AS ?tier)
+        } }
+      UNION
+      { # membership: a gene of the same cluster is in a pathway, so this gene is a putative member of it, 0.50
+        SELECT ?component ?pathway ?wMem ?tier ?cl WHERE {
+          ?cl a obo:SO_0002357 ; obo:BFO_0000051 ?component , ?partner . FILTER(?component != ?partner)
+          BIND(STRAFTER(STR(?partner), "tair.name/") AS ?partnerId)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?partnerId ?pathway WHERE {
+          ?nodepartnerId dcterms:isPartOf ?gppartnerId ; v:gpmlProperty ?bpartnerId . ?bpartnerId v:key ?kpartnerId ; v:value ?gvpartnerId .
+          FILTER(?kpartnerId IN ("Synonym_1", "Synonym_2", "AlternativeId_Sgn", "AlternativeId_Araport"))
+          FILTER(REGEX(STR(?gvpartnerId), "^(Solyc[0-9]+g[0-9]+|AT[1-5CM]G[0-9]+)", "i"))
+          BIND(IF(STRSTARTS(STR(?gvpartnerId), "Solyc"), CONCAT("Solyc", SUBSTR(STR(?gvpartnerId), 6, 9)), STRBEFORE(CONCAT(STR(?gvpartnerId), "."), ".")) AS ?partnerId)
+          BIND(REPLACE(STR(?gppartnerId), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          BIND(0.50 AS ?wMem) BIND("bgc-partner-in-pathway" AS ?tier)
+        } }
+      UNION
+      { # membership: the gene and a gene of the same cluster are in the same pathway, 0.70
+        SELECT ?component ?pathway ?wMem ?tier ?cl WHERE {
+          ?cl a obo:SO_0002357 ; obo:BFO_0000051 ?component , ?partner . FILTER(?component != ?partner)
+          BIND(STRAFTER(STR(?component), "tair.name/") AS ?geneId)
+          BIND(STRAFTER(STR(?partner), "tair.name/") AS ?partnerId)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?geneId ?pathway WHERE {
+          ?nodegeneId dcterms:isPartOf ?gpgeneId ; v:gpmlProperty ?bgeneId . ?bgeneId v:key ?kgeneId ; v:value ?gvgeneId .
+          FILTER(?kgeneId IN ("Synonym_1", "Synonym_2", "AlternativeId_Sgn", "AlternativeId_Araport"))
+          FILTER(REGEX(STR(?gvgeneId), "^(Solyc[0-9]+g[0-9]+|AT[1-5CM]G[0-9]+)", "i"))
+          BIND(IF(STRSTARTS(STR(?gvgeneId), "Solyc"), CONCAT("Solyc", SUBSTR(STR(?gvgeneId), 6, 9)), STRBEFORE(CONCAT(STR(?gvgeneId), "."), ".")) AS ?geneId)
+          BIND(REPLACE(STR(?gpgeneId), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?partnerId ?pathway WHERE {
+          ?nodePpartnerId dcterms:isPartOf ?gpPpartnerId ; v:gpmlProperty ?bPpartnerId . ?bPpartnerId v:key ?kPpartnerId ; v:value ?gvPpartnerId .
+          FILTER(?kPpartnerId IN ("Synonym_1", "Synonym_2", "AlternativeId_Sgn", "AlternativeId_Araport"))
+          FILTER(REGEX(STR(?gvPpartnerId), "^(Solyc[0-9]+g[0-9]+|AT[1-5CM]G[0-9]+)", "i"))
+          BIND(IF(STRSTARTS(STR(?gvPpartnerId), "Solyc"), CONCAT("Solyc", SUBSTR(STR(?gvPpartnerId), 6, 9)), STRBEFORE(CONCAT(STR(?gvPpartnerId), "."), ".")) AS ?partnerId)
+          BIND(REPLACE(STR(?gpPpartnerId), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          BIND(0.70 AS ?wMem) BIND("bgc-both-in-pathway" AS ?tier)
+        } }
+      UNION
+      { # omics: co-expressed (same MEANtools functional cluster) with a gene that is in the pathway, 0.50
+        SELECT ?component ?pathway ?wOm ?tier WHERE {
+          ?assocA a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?component ; sio:SIO_000772/lodp:functionalCluster ?fc .
+          ?assocB a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?partner ; sio:SIO_000772/lodp:functionalCluster ?fc .
+          FILTER(?component != ?partner && STRSTARTS(STR(?component), "https://plants.ensembl.org/") && STRSTARTS(STR(?partner), "https://plants.ensembl.org/"))
+          BIND(REPLACE(STR(?partner), "^.*[?&]g=", "") AS ?partnerId)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?partnerId ?pathway WHERE {
+          ?nodepartnerId dcterms:isPartOf ?gppartnerId ; v:gpmlProperty ?bpartnerId . ?bpartnerId v:key ?kpartnerId ; v:value ?gvpartnerId .
+          FILTER(?kpartnerId IN ("Synonym_1", "Synonym_2", "AlternativeId_Sgn", "AlternativeId_Araport"))
+          FILTER(REGEX(STR(?gvpartnerId), "^(Solyc[0-9]+g[0-9]+|AT[1-5CM]G[0-9]+)", "i"))
+          BIND(IF(STRSTARTS(STR(?gvpartnerId), "Solyc"), CONCAT("Solyc", SUBSTR(STR(?gvpartnerId), 6, 9)), STRBEFORE(CONCAT(STR(?gvpartnerId), "."), ".")) AS ?partnerId)
+          BIND(REPLACE(STR(?gppartnerId), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          BIND(0.50 AS ?wOm) BIND("coexpressed-with-pathway-gene" AS ?tier)
+        } }
+      UNION
+      { # sequence: the gene is an ortholog of a gene listed in the pathway in another species, 0.50 (needs lodp:orthologOf, not in the graphs yet)
+        SELECT ?component ?pathway ?wSeq ?tier WHERE {
+          ?component lodp:orthologOf ?orthologUniprot .
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+            SELECT DISTINCT ?orthologUniprot ?pathway WHERE {
+              ?enzymeNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bu . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
+              BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?orthologUniprot)
+              BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+            }
+          }
+          BIND(0.50 AS ?wSeq) BIND("ortholog-in-pathway-species" AS ?tier)
+        } }
+    } GROUP BY ?component ?pathway }
+  BIND(1 - (1 - COALESCE(?wMembership, 0)) * (1 - COALESCE(?wOmics, 0)) * (1 - COALESCE(?wSequence, 0)) AS ?score)
+  BIND("gene" AS ?componentType)
+}
+ORDER BY DESC(?score)
+LIMIT 5000""" ;
+    schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
+    spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .
