@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:rhea-step-between-metabolites a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "rhea-step-between-metabolites: Two detected metabolites are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. OUTPUT: a list of reactions (the PlantMetWiki reactions with a Rhea reaction that connects two detected metabolites and a known UniProt enzyme) with their pathway; the Rhea reaction, the enzyme and the two detected metabolites (substrate and product features) are metadata."@en ;
+    rdfs:comment "rhea-step-between-metabolites: Two detected metabolites are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the difference between them is exactly one Rhea reaction: the two ChEBI compounds are on opposite sides of a Rhea reaction (federated query to Rhea), and PlantMetWiki has a reaction with that Rhea identifier and a UniProt enzyme. A hit suggests a pathway step between the two detected metabolites that PlantMetWiki may not have. Shows up to 100 pairs. (The joins with the detected metabolites are natural joins on the first InChIKey block, to avoid a cross product of the annotations.) OUTPUT: a list of reactions (the PlantMetWiki reactions with a Rhea reaction that connects two detected metabolites and a known UniProt enzyme) with their pathway; the Rhea reaction, the enzyme and the two detected metabolites (substrate and product features) are metadata."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "case 2: inferred enzyme function from PMN/PlantCyc+ db" , "metabolite annotation" , "metabolite feature" , "InChIKey" , "ChEBI" , "Rhea" , "enzyme" , "UniProt" , "PlantMetWiki metabolite" , "PlantMetWiki reaction" , "pathway expansion" , "federated query" , "local evidence graph" , "output: reactions" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
@@ -15,40 +15,39 @@ PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
 PREFIX rh: <http://rdf.rhea-db.org/>
 
 SELECT DISTINCT ?component ?componentType ?pathway ?rhea ?uniprot ?substrateFeature ?productFeature WHERE {
-  { SELECT DISTINCT ?component ?pathway ?rhea ?uniprot WHERE {
-      SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-        ?component a gpml:Interaction ; v:gpmlProperty ?br , ?bu . ?br v:key "AlternativeId_Rhea" ; v:value ?rheaId . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
-        BIND(IRI(CONCAT("http://rdf.rhea-db.org/", STR(?rheaId))) AS ?rhea)
-        BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
-        BIND(REPLACE(STR(?component), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+  # PlantMetWiki asks Rhea itself and maps the two sides to first InChIKey blocks (a correlated federated query inside PlantMetWiki)
+  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+    SELECT DISTINCT ?component ?pathway ?rhea ?uniprot ?block1A ?block1B WHERE {
+      { SELECT DISTINCT ?component ?rhea ?uniprot WHERE {
+          ?component a gpml:Interaction ; v:gpmlProperty ?br , ?bu . ?br v:key "AlternativeId_Rhea" ; v:value ?rheaId . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
+          BIND(IRI(CONCAT("http://rdf.rhea-db.org/", STR(?rheaId))) AS ?rhea)
+          BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?uniprot)
+      } LIMIT 300 }
+      BIND(REPLACE(STR(?component), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+      SERVICE <https://sparql.rhea-db.org/sparql> {
+        ?rhea rh:side ?sideA , ?sideB .
+        ?sideA rh:contains/rh:compound/rh:chebi ?chebiA .
+        ?sideB rh:contains/rh:compound/rh:chebi ?chebiB .
+        FILTER(?sideA != ?sideB && STR(?chebiA) < STR(?chebiB))
       }
-  } LIMIT 300 }
-  BIND("reaction" AS ?componentType)
-  SERVICE <https://sparql.rhea-db.org/sparql> {
-    ?rhea rh:side ?sideA , ?sideB .
-    ?sideA rh:contains/rh:compound/rh:chebi ?chebiA .
-    ?sideB rh:contains/rh:compound/rh:chebi ?chebiB .
-    FILTER(?sideA != ?sideB && STR(?chebiA) < STR(?chebiB))
-  }
-  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-    SELECT DISTINCT ?block1A ?chebiA WHERE {
+      BIND(STRAFTER(STR(?chebiA), "CHEBI_") AS ?cA)
+      BIND(STRAFTER(STR(?chebiB), "CHEBI_") AS ?cB)
       ?mA v:gpmlProperty ?ba1 , ?ba2 . ?ba1 v:key "InchiKey" ; v:value ?ika . ?ba2 v:key "AlternativeId_Chebi" ; v:value ?cA .
-      BIND(SUBSTR(STRAFTER(?ika, "InChIKey="), 1, 14) AS ?block1A)
-      BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?cA))) AS ?chebiA)
-    }
-  }
-  SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
-    SELECT DISTINCT ?block1B ?chebiB WHERE {
       ?mB v:gpmlProperty ?bb1 , ?bb2 . ?bb1 v:key "InchiKey" ; v:value ?ikb . ?bb2 v:key "AlternativeId_Chebi" ; v:value ?cB .
+      BIND(SUBSTR(STRAFTER(?ika, "InChIKey="), 1, 14) AS ?block1A)
       BIND(SUBSTR(STRAFTER(?ikb, "InChIKey="), 1, 14) AS ?block1B)
-      BIND(IRI(CONCAT("http://purl.obolibrary.org/obo/CHEBI_", STR(?cB))) AS ?chebiB)
     }
   }
-  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?substrateFeature ; skos:closeMatch ?keyA .
-  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?productFeature ; skos:closeMatch ?keyB .
-  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/") && STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
-  FILTER(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) = ?block1A && SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) = ?block1B)
+  { SELECT DISTINCT ?substrateFeature ?block1A WHERE {
+      ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?substrateFeature ; skos:closeMatch ?keyA .
+      BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?block1A)
+  } }
+  { SELECT DISTINCT ?productFeature ?block1B WHERE {
+      ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?productFeature ; skos:closeMatch ?keyB .
+      BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?block1B)
+  } }
+  BIND("reaction" AS ?componentType)
 }
-LIMIT 100""" ;
+LIMIT 200""" ;
     schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
     spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> , <https://sparql.rhea-db.org/sparql> .

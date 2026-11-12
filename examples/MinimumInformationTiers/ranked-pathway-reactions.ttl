@@ -13,12 +13,13 @@ PREFIX sio: <http://semanticscience.org/resource/>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
+PREFIX rh: <http://rdf.rhea-db.org/>
 
 # Ranked pathway reactions. A component is a reaction in a pathway. One optional branch per piece of evidence;
 # score = 1 - (1 - w_database) * (1 - w_enzyme) * (1 - w_omics) * (1 - w_prediction), each w the strongest tier of its family.
 SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wDatabase ?wEnzyme ?wOmics ?wPrediction WHERE {
   { SELECT ?component ?pathway
-            (MAX(?wDb) AS ?wDatabase) (MAX(?wEnz) AS ?wEnzyme) (MAX(?wOm) AS ?wOmics) (MAX(?wPred) AS ?wPrediction)
+            (MAX(COALESCE(?wDb, 0)) AS ?wDatabase) (MAX(COALESCE(?wEnz, 0)) AS ?wEnzyme) (MAX(COALESCE(?wOm, 0)) AS ?wOmics) (MAX(COALESCE(?wPred, 0)) AS ?wPrediction)
             (GROUP_CONCAT(DISTINCT ?tier; separator=", ") AS ?tiersPassed)
      WHERE {
       { # families database identifiers (Rhea 0.60, EC 0.40: the strongest counts) and enzyme (UniProt on the reaction, 0.70)
@@ -68,8 +69,8 @@ SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wDatabase ?wEnzym
           OPTIONAL { ?component lodp:inPathway ?pathway }
           BIND(0.30 AS ?wPred) BIND("ml-predicted-reaction" AS ?tier)
         } }
-      # not in this live query (heavy; their weights are in weights.csv of the notebooks folder, for when their results are materialised):
-      #   rhea-step-between-metabolites (family omics, 0.60), idsm-similar-metabolite-with-coexpressed-catalysing-gene (omics, 0.50)
+      # rhea-step-between-metabolites (family omics, 0.60) is not in this live query: asked through PlantMetWiki it takes longer than the endpoint allows (see the single-tier query)
+      # idsm-similar-metabolite-with-coexpressed-catalysing-gene (omics, 0.50) needs a correlated search per metabolite and gene; it is only an example query (weights.csv)
     } GROUP BY ?component ?pathway }
   BIND(1 - (1 - COALESCE(?wDatabase, 0)) * (1 - COALESCE(?wEnzyme, 0)) * (1 - COALESCE(?wOmics, 0)) * (1 - COALESCE(?wPrediction, 0)) AS ?score)
   BIND("reaction" AS ?componentType)

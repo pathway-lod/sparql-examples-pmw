@@ -21,7 +21,7 @@ PREFIX dcterms: <http://purl.org/dc/terms/>
 # orthologs one family (sequence). score = 1 - (1 - w_membership) * (1 - w_omics) * (1 - w_sequence).
 SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmics ?wSequence ?cluster WHERE {
   { SELECT ?component ?pathway
-            (MAX(?wMem) AS ?wMembership) (MAX(?wOm) AS ?wOmics) (MAX(?wSeq) AS ?wSequence)
+            (MAX(COALESCE(?wMem, 0)) AS ?wMembership) (MAX(COALESCE(?wOm, 0)) AS ?wOmics) (MAX(COALESCE(?wSeq, 0)) AS ?wSequence)
             (GROUP_CONCAT(DISTINCT ?tier; separator=", ") AS ?tiersPassed) (SAMPLE(?cl) AS ?cluster)
      WHERE {
       { # membership: the gene is listed in a PlantMetWiki pathway (Solyc or Araport identifier), 0.90
@@ -105,6 +105,33 @@ SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmi
         }
       }
           BIND(0.50 AS ?wOm) BIND("coexpressed-with-pathway-gene" AS ?tier)
+        } }
+      UNION
+      { # omics: the gene is associated with a detected metabolite that is annotated as a metabolite of the pathway, and the gene is listed in that pathway (0.60)
+        SELECT ?component ?pathway ?wOm ?tier WHERE {
+          ?assoc a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?feature , ?component .
+          ?feature a lodp:MetaboliteFeature .
+          FILTER(STRSTARTS(STR(?component), "https://plants.ensembl.org/"))
+          BIND(REPLACE(STR(?component), "^.*[?&]g=", "") AS ?geneId)
+          ?annotation a lodp:MetaboliteAnnotation ; lodp:feature ?feature ; <http://www.w3.org/2004/02/skos/core#closeMatch> ?mkey .
+          BIND(SUBSTR(STRAFTER(STR(?mkey), "inchikey/"), 1, 14) AS ?block1)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+        SELECT DISTINCT ?geneId ?pathway WHERE {
+          ?nodegeneId dcterms:isPartOf ?gpgeneId ; v:gpmlProperty ?bgeneId . ?bgeneId v:key ?kgeneId ; v:value ?gvgeneId .
+          FILTER(?kgeneId IN ("Synonym_1", "Synonym_2", "AlternativeId_Sgn", "AlternativeId_Araport"))
+          FILTER(REGEX(STR(?gvgeneId), "^(Solyc[0-9]+g[0-9]+|AT[1-5CM]G[0-9]+)", "i"))
+          BIND(IF(STRSTARTS(STR(?gvgeneId), "Solyc"), CONCAT("Solyc", SUBSTR(STR(?gvgeneId), 6, 9)), STRBEFORE(CONCAT(STR(?gvgeneId), "."), ".")) AS ?geneId)
+          BIND(REPLACE(STR(?gpgeneId), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+        }
+      }
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+            SELECT DISTINCT ?block1 ?pathway WHERE {
+              ?metNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bm . ?bm v:key "InchiKey" ; v:value ?ik .
+              BIND(SUBSTR(STRAFTER(?ik, "InChIKey="), 1, 14) AS ?block1)
+              BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+            }
+          }
+          BIND(0.60 AS ?wOm) BIND("gene-and-metabolite-in-same-pathway" AS ?tier)
         } }
       UNION
       { # sequence: the gene is an ortholog of a gene listed in the pathway in another species, 0.50 (needs lodp:orthologOf, not in the graphs yet)

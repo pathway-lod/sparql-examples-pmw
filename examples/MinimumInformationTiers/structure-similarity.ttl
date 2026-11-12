@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:structure-similarity a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "structure-similarity: Proxy for a structure similarity. Two detected metabolites of the same dataset are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the two InChIs share the same formula layer but not the same connectivity (they are related structures: isomers). A true fingerprint similarity (for example Tanimoto) cannot be computed in SPARQL; when precomputed values are in the graph (as in `similarity-link`) they replace this proxy. OUTPUT: a list of putative metabolites of a pathway: PlantMetWiki metabolites with a related structure (here a proxy: the same InChI formula layer) to a metabolite of the pathway, both matched by detected metabolites (the pathway, the metabolite it is inferred from and the formula layer are metadata)."@en ;
+    rdfs:comment "structure-similarity: Proxy for a structure similarity. Two detected metabolites of the same dataset are matched to PlantMetWiki metabolites (`annotation-matches-plantmetwiki`) and the two InChIs share the same formula layer but not the same connectivity (they are related structures: isomers). A true fingerprint similarity (for example Tanimoto) cannot be computed in SPARQL; when precomputed values are in the graph (as in `similarity-link`) they replace this proxy. (The two metabolites are taken from the distinct annotated first blocks and joined with PlantMetWiki by natural joins, to avoid a cross product of the annotations.) OUTPUT: a list of putative metabolites of a pathway: PlantMetWiki metabolites with a related structure (here a proxy: the same InChI formula layer) to a metabolite of the pathway, both matched by detected metabolites (the pathway, the metabolite it is inferred from and the formula layer are metadata)."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "case 5: metabolomics, metabolite annotations" , "metabolite annotation" , "metabolite feature" , "InChI" , "InChIKey" , "structure similarity" , "PlantMetWiki metabolite" , "federated query" , "local evidence graph" , "output: metabolites" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
@@ -13,16 +13,17 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?component ?componentType ?pathway ?viaMetabolite ?formulaLayer WHERE {
-  ?annA a lodp:MetaboliteAnnotation ; lodp:feature ?featureA ; skos:closeMatch ?keyA .
-  FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/"))
-  BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
-  ?annB a lodp:MetaboliteAnnotation ; lodp:feature ?featureB ; skos:closeMatch ?keyB .
-  FILTER(STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
-  BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
-  ?featureA lodp:dataset ?dataset . ?featureB lodp:dataset ?dataset .
-  FILTER(?blockA != ?blockB)
-  BIND("metabolite" AS ?componentType)
+SELECT DISTINCT ?component ?componentType ?pathway ?viaMetabolite ?formulaLayer WHERE {
+  { SELECT DISTINCT ?blockA WHERE {
+      ?annA a lodp:MetaboliteAnnotation ; skos:closeMatch ?keyA .
+      FILTER(STRSTARTS(STR(?keyA), "https://identifiers.org/inchikey/"))
+      BIND(SUBSTR(STRAFTER(STR(?keyA), "inchikey/"), 1, 14) AS ?blockA)
+  } }
+  { SELECT DISTINCT ?blockB WHERE {
+      ?annB a lodp:MetaboliteAnnotation ; skos:closeMatch ?keyB .
+      FILTER(STRSTARTS(STR(?keyB), "https://identifiers.org/inchikey/"))
+      BIND(SUBSTR(STRAFTER(STR(?keyB), "inchikey/"), 1, 14) AS ?blockB)
+  } }
   SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
     SELECT DISTINCT ?blockA ?viaMetabolite ?pathway ?formulaLayer WHERE {
       ?nodeA dcterms:isPartOf ?gp ; v:gpmlProperty ?a1 , ?a2 . ?a1 v:key "InchiKey" ; v:value ?ika . ?a2 v:key "Inchi" ; v:value ?inchiA .
@@ -40,7 +41,9 @@ SELECT ?component ?componentType ?pathway ?viaMetabolite ?formulaLayer WHERE {
       BIND(STRBEFORE(STRAFTER(?inchiB, "InChI=1S/"), "/") AS ?formulaLayer)
     }
   }
+  FILTER(?blockA != ?blockB)
+  BIND("metabolite" AS ?componentType)
 }
-LIMIT 100""" ;
+LIMIT 200""" ;
     schema:target <https://pathway-lod.github.io/sparql-examples-pmw/evidence-graph> ;
     spex:federatesWith <https://plantmetwiki.bioinformatics.nl/sparql> .
