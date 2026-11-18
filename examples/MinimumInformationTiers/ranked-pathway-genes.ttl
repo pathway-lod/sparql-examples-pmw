@@ -29,7 +29,7 @@ SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmi
         SELECT ?component ?pathway ?wMem ?tier WHERE {
           { ?assoc a lodp:GeneMetaboliteAssociation ; sio:SIO_000628 ?component . FILTER(STRSTARTS(STR(?component), "https://plants.ensembl.org/"))
           BIND(REPLACE(STR(?component), "^.*[?&]g=", "") AS ?geneId) }
-        UNION { ?cluster a obo:SO_0002357 ; obo:BFO_0000051 ?component . BIND(STRAFTER(STR(?component), "tair.name/") AS ?geneId) }
+        UNION { ?cluster a obo:SO_0002357 ; obo:BFO_0000051 ?component . BIND(REPLACE(STR(?component), "^.*(tair[.]name/|[?&]g=)", "") AS ?geneId) }
           SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
         SELECT DISTINCT ?geneId ?pathway WHERE {
           ?nodegeneId dcterms:isPartOf ?gpgeneId ; v:gpmlProperty ?bgeneId . ?bgeneId v:key ?kgeneId ; v:value ?gvgeneId .
@@ -51,7 +51,7 @@ SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmi
       { # membership: a gene of the same cluster is in a pathway, so this gene is a putative member of it, 0.50
         SELECT ?component ?pathway ?wMem ?tier ?cl WHERE {
           ?cl a obo:SO_0002357 ; obo:BFO_0000051 ?component , ?partner . FILTER(?component != ?partner)
-          BIND(STRAFTER(STR(?partner), "tair.name/") AS ?partnerId)
+          BIND(REPLACE(STR(?partner), "^.*(tair[.]name/|[?&]g=)", "") AS ?partnerId)
           SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
         SELECT DISTINCT ?partnerId ?pathway WHERE {
           ?nodepartnerId dcterms:isPartOf ?gppartnerId ; v:gpmlProperty ?bpartnerId . ?bpartnerId v:key ?kpartnerId ; v:value ?gvpartnerId .
@@ -67,8 +67,8 @@ SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmi
       { # membership: the gene and a gene of the same cluster are in the same pathway, 0.70
         SELECT ?component ?pathway ?wMem ?tier ?cl WHERE {
           ?cl a obo:SO_0002357 ; obo:BFO_0000051 ?component , ?partner . FILTER(?component != ?partner)
-          BIND(STRAFTER(STR(?component), "tair.name/") AS ?geneId)
-          BIND(STRAFTER(STR(?partner), "tair.name/") AS ?partnerId)
+          BIND(REPLACE(STR(?component), "^.*(tair[.]name/|[?&]g=)", "") AS ?geneId)
+          BIND(REPLACE(STR(?partner), "^.*(tair[.]name/|[?&]g=)", "") AS ?partnerId)
           SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
         SELECT DISTINCT ?geneId ?pathway WHERE {
           ?nodegeneId dcterms:isPartOf ?gpgeneId ; v:gpmlProperty ?bgeneId . ?bgeneId v:key ?kgeneId ; v:value ?gvgeneId .
