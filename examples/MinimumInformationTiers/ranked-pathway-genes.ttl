@@ -5,7 +5,7 @@
 @prefix spex: <https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:ranked-pathway-genes a sh:SPARQLExecutable, sh:SPARQLSelectExecutable ;
-    rdfs:comment "ranked-pathway-genes: One query for all the evidence on genes of pathways. A component is a gene (Solyc or Arabidopsis locus) in a pathway; the pathway is empty when the gene only has cluster evidence. Each piece of evidence is an optional branch (gene listed in the pathway; two genes in the same biosynthetic gene cluster; a gene of the cluster is in the pathway; both are in the same pathway; co-expressed with a gene of the pathway; ortholog of a pathway gene). Genes of a cluster and genes of a pathway are not independent evidence, so these tiers form one family (membership), co-expression and association another (omics), orthologs a third (sequence); the score is the noisy-OR over the families. OUTPUT: a ranked list of putative or supported genes of a pathway with the score, the tiers passed, the cluster and the weight of each family. The weights are drafts to be calibrated."@en ;
+    rdfs:comment "ranked-pathway-genes: One query for all the evidence on genes of pathways. A component is a gene (Solyc or Arabidopsis locus) in a pathway; the pathway is empty when the gene only has cluster evidence. Each piece of evidence is an optional branch (gene listed in the pathway by locus, by its UniProt entry or by an EC number of its reactions; two genes in the same biosynthetic gene cluster; a gene of the cluster is in the pathway; both are in the same pathway; co-expressed with a gene of the pathway; ortholog of a pathway gene). Genes of a cluster and genes of a pathway are not independent evidence, so these tiers form one family (membership), co-expression and association another (omics), orthologs a third (sequence); the score is the noisy-OR over the families. OUTPUT: a ranked list of putative or supported genes of a pathway with the score, the tiers passed, the cluster and the weight of each family. The weights are drafts to be calibrated."@en ;
     schema:keywords "Minimum Information: evidence tiers" , "evidence tier" , "ranked output" , "score" , "noisy-OR" , "all evidence" , "case 3: plantiSMASH-predicted BGCs, predicted gene clusters" , "case 4: transcriptomics, gene co-expression values" , "case 6: paired omics, transcript-metabolite associations" , "gene" , "Solyc locus" , "Arabidopsis locus" , "biosynthetic gene cluster" , "plantiSMASH" , "co-expression" , "orthologs" , "PlantMetWiki pathway" , "federated query" , "local evidence graph" , "output: genes" ;
     sh:prefixes _:sparql_examples_prefixes ;
     sh:select """PREFIX lodp: <https://example.org/lod-pathways/pilot/>
@@ -13,11 +13,12 @@ PREFIX sio: <http://semanticscience.org/resource/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX v: <http://rdf-plantmetwiki.bioinformatics.nl/vocab/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX gpml: <http://vocabularies.wikipathways.org/gpml#>
 
 # Ranked pathway genes. A component is a gene (Solyc or Arabidopsis locus) in a pathway; the pathway is unbound when the gene only
 # has cluster evidence (the lowest tier). One optional branch per piece of evidence. The genes of a biosynthetic gene cluster
 # and the genes of a pathway are not independent evidence, so the tiers 'same BGC', 'BGC with a gene in the pathway', 'BGC with both genes in
-# the pathway' and 'gene listed in the pathway' are ONE family (membership); co-expression and association are one family (omics);
+# the pathway', 'gene listed in the pathway' (by locus 0.90, by UniProt entry 0.80, by EC number 0.40) are ONE family (membership); co-expression and association are one family (omics);
 # orthologs one family (sequence). score = 1 - (1 - w_membership) * (1 - w_omics) * (1 - w_sequence).
 SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmics ?wSequence ?cluster WHERE {
   { SELECT ?component ?pathway
@@ -134,12 +135,40 @@ SELECT ?component ?componentType ?pathway ?score ?tiersPassed ?wMembership ?wOmi
           BIND(0.60 AS ?wOm) BIND("gene-and-metabolite-in-same-pathway" AS ?tier)
         } }
       UNION
-      { # sequence: the gene is an ortholog of a gene listed in the pathway in another species, 0.50 (needs lodp:orthologOf, not in the graphs yet)
+      { # membership: the UniProt entry of the gene (lodp:uniprot) is listed in the pathway, 0.80 (the pilot's tier gene_uniprot)
+        SELECT ?component ?pathway ?wMem ?tier WHERE {
+          ?component lodp:uniprot ?uniprotEntry .
+          BIND(STRAFTER(STR(?uniprotEntry), "uniprot/") AS ?acc)
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+            SELECT DISTINCT ?acc ?pathway WHERE {
+              ?uniprotNode dcterms:isPartOf ?gpUniprot ; v:gpmlProperty ?bUniprot . ?bUniprot v:key "AlternativeId_Uniprot" ; v:value ?acc .
+              BIND(REPLACE(STR(?gpUniprot), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+            }
+          }
+          BIND(0.80 AS ?wMem) BIND("gene-uniprot-in-pathway" AS ?tier)
+        } }
+      UNION
+      { # membership: an EC number of the gene (lodp:ecNumber) is on a reaction of the pathway, 0.40 (weak: an EC number is shared by many genes; the pilot's tier gene_ec)
+        SELECT ?component ?pathway ?wMem ?tier WHERE {
+          ?component lodp:ecNumber ?ec .
+          SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
+            SELECT DISTINCT ?ec ?pathway WHERE {
+              ?reactionNode a gpml:Interaction ; dcterms:isPartOf ?gpEc ; v:gpmlProperty ?bEc . ?bEc v:key "EC_Number" ; v:value ?ecValue .
+              FILTER(REGEX(STR(?ecValue), "^EC-[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$"))
+              BIND(STRAFTER(STR(?ecValue), "EC-") AS ?ec)
+              BIND(REPLACE(STR(?gpEc), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
+            }
+          }
+          BIND(0.40 AS ?wMem) BIND("gene-ec-in-pathway" AS ?tier)
+        } }
+      UNION
+      { # sequence: the gene is an ortholog of a gene listed in the pathway in another species, 0.50 (reads lodp:orthologOf of the gene annotation graph, pilots/pairedomics_overlap/results/gene_annotation.ttl)
         SELECT ?component ?pathway ?wSeq ?tier WHERE {
           ?component lodp:orthologOf ?orthologUniprot .
           SERVICE <https://plantmetwiki.bioinformatics.nl/sparql> {
             SELECT DISTINCT ?orthologUniprot ?pathway WHERE {
               ?enzymeNode dcterms:isPartOf ?gp ; v:gpmlProperty ?bu . ?bu v:key "AlternativeId_Uniprot" ; v:value ?acc .
+              FILTER(REGEX(STR(?acc), "^[A-Z0-9]{6,10}$"))
               BIND(IRI(CONCAT("http://purl.uniprot.org/uniprot/", STR(?acc))) AS ?orthologUniprot)
               BIND(REPLACE(STR(?gp), "^.*/Pathway/([A-Z]+[0-9]+)_.*$", "$1") AS ?pathway)
             }
